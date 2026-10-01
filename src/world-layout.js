@@ -1,4 +1,4 @@
-import {SPIKE_PITS,center,LENGTH} from './terrain.js';
+import {spikePits,lavaFlows,lavaPathX,center,LENGTH} from './terrain.js';
 import {clearCourseIce} from './ice-clearance.js';
 export function createWorldLayout(){
  let seed=1781;
@@ -41,8 +41,23 @@ export function createWorldLayout(){
  for(const [id,tree] of trees.entries())if(tree.s>LENGTH-70&&tree.s<LENGTH+85&&Math.abs(tree.x)<60)tree.x=(tree.x<0?-1:1)*(65+(id%5)*3);
  for(const house of houses)reserve(house,8,16);
  clearCourseIce(obstacles);
- const snowmobiles=Array.from({length:12},(_,id)=>({id,s:150+id*163+random()*58,x:(random()-.5)*17,consumed:false,radius:2.2}));
- for(const mobile of snowmobiles){const obstacle=obstacles.find(h=>Math.abs(h.s-mobile.s)<10&&Math.abs(h.x-mobile.x)<h.r+3);if(obstacle)mobile.x=obstacle.x+(mobile.x>=obstacle.x?1:-1)*(obstacle.r+4);}
- return {trees,houses,hunters,obstacles,wildlife,skiRoutes,snowmobiles,pits:SPIKE_PITS};
+ const pits=spikePits(),lava=lavaFlows();
+ const snowmobiles=Array.from({length:18},(_,id)=>({id,s:135+id*111+random()*40,x:(random()-.5)*17,consumed:false,radius:2.2}));
+ const mobileClear=(s,x)=>{
+  if(obstacles.some(h=>Math.abs(h.s-s)<(h.kind==='ramp'?18:h.r+3)&&Math.abs(h.x-x)<(h.kind==='ramp'?5:h.r+3)))return false;
+  if(trees.some(tree=>Math.hypot(tree.s-s,tree.x-x)<2.2+1.5*tree.scale))return false;
+  if(houses.some(house=>Math.abs(house.s-s)<11*house.scale+2.2&&Math.abs(house.x-x)<8*house.scale+2.2))return false;
+  if(pits.some(pit=>Math.hypot(pit.s-s,pit.x-x)<pit.r+3.2))return false;
+  if(lava.some(flow=>Math.abs(s-flow.s)<flow.r+3.2&&Math.abs(x-lavaPathX(flow,s))<flow.halfWidth+3.2))return false;
+  return true;
+ };
+ for(const mobile of snowmobiles){
+  const initialS=mobile.s,initialX=mobile.x;
+  search:for(let ds=0;ds<=35;ds+=2)for(const direction of ds?[1,-1]:[1])for(let dx=0;dx<=24;dx+=1)for(const side of dx?[1,-1]:[1]){
+   const s=initialS+ds*direction,x=initialX+dx*side;
+   if(s>90&&s<LENGTH-65&&Math.abs(x)<=13&&mobileClear(s,x)){mobile.s=s;mobile.x=x;break search;}
+  }
+ }
+ return {trees,houses,hunters,obstacles,wildlife,skiRoutes,snowmobiles,pits,lava};
 }
 export function skiRouteX(route,s){if(route.cross)return Math.sin((s-route.start)/(route.end-route.start)*Math.PI*2*route.cycles+route.phase)*route.offset;return route.side*route.offset+Math.sin(s*.012+route.phase)*9+Math.sin(s*.027+route.phase)*2;}

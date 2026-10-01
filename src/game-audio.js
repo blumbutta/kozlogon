@@ -123,7 +123,8 @@ export function createGameAudio(){
   catch{enabled=false;clear();stopAmbient();return false;}
  }
  function animal(def,volume=.14,position){
-  const species=def?.species||'goat',index=clamp(Math.trunc(def?.variant||0),0,4),p=(VOICES[species]||VOICES.goat)[index];
+  const species=def?.species||'goat',index=clamp(Math.trunc(def?.variant||0),0,4),original=(VOICES[species]||VOICES.goat)[index];
+  const p=def?.theme==='hell'?{...original,pitch:original.pitch*.62,wave:'sawtooth',formants:original.formants.map(f=>f*.65),rough:original.rough+.22}:def?.theme==='moon'?{...original,pitch:original.pitch*1.65,wave:'sine',formants:original.formants.map(f=>f*1.22),depth:original.depth+32}:original;
   const duration=p.rhythm.at(-1)[0]+p.rhythm.at(-1)[1],v=voice('animal',duration,clamp(volume,0,.35),position);if(!v)return false;
   const t=v.start,amp=v.add(audio.createGain());amp.gain.setValueAtTime(.0001,t);amp.connect(v.out);
   for(const [offset,length,strength] of p.rhythm){amp.gain.setValueAtTime(.0001,t+offset);amp.gain.linearRampToValueAtTime(strength,t+offset+.055);amp.gain.setValueAtTime(strength*.72,t+offset+length*.58);amp.gain.exponentialRampToValueAtTime(.0001,t+offset+length);}
@@ -200,7 +201,8 @@ export function createGameAudio(){
   }
   dt=clamp(dt,0,.25);if(dt===0)return;clock+=dt;
   const weather=state.weather||{},name=typeof weather==='string'?weather:weather.name||'';
-  const rain=(name==='Гроза'||name==='storm')?.25:(name==='Дождь'||name==='rain')?.21:0;
+  const kind=typeof weather==='object'?weather.kind:name;
+  const rain=(kind==='storm'||name==='Гроза')?.25:(kind==='rain'||name==='Дождь')?.21:0;
   const wind=clamp(typeof weather==='object'?weather.wind||0:0,0,12);
   const inGame=['countdown','racing','celebrating'].includes(phase);
   param(ambient.rain.gain,inGame?rain:0);param(ambient.brown.gain,inGame?(.012+wind*.013)*(1+.22*Math.sin(clock*1.1)):0);

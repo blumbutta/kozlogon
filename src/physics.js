@@ -1,18 +1,13 @@
 import * as CANNON from 'cannon-es';
-import {LENGTH,CELL,MIN_X,MIN_S,center,terrainData,sampleGroundHeight,baseTerrainHeight,SPIKE_PITS} from './terrain.js';
+import {LENGTH,CELL,MIN_X,MIN_S,center,terrainData,sampleGroundHeight,baseTerrainHeight,spikePits,lavaFlows,lavaContact} from './terrain.js';
 import {resetWildlife,updateWildlife,sweptSphereContact} from './wildlife.js';
 import {spawnPosition} from './racers.js';
 import {courseBoosts,localBoostPosition,rampSurfaceAt} from './boosts.js';
 import {botControls} from './ai.js';
 import {chooseHazardTarget} from './combat-targets.js';
+import {getActiveWorld} from './worlds.js';
 export {LENGTH};
-export const WEATHER=[
- {name:'Солнечно',icon:'☀',effect:'Хорошее сцепление',grip:.5,drag:.06,wind:0,steer:1,lateralGrip:3.2},
- {name:'Порывы ветра',icon:'≋',effect:'Сильный боковой ветер',grip:.45,drag:.06,wind:8.5,steer:1,lateralGrip:2.6},
- {name:'Дождь',icon:'☂',effect:'Лёгкий занос на мокром склоне',grip:.14,drag:.035,wind:1.8,steer:.9,lateralGrip:1.5},
- {name:'Гроза',icon:'ϟ',effect:'Частые молнии · опасная зона 12 м',grip:.18,drag:.04,wind:6.8,steer:.92,lateralGrip:1.8},
- {name:'Снег',icon:'❄',effect:'Мягкий снег тормозит',grip:.36,drag:.085,wind:2.5,steer:.94,lateralGrip:2.9}
-];
+export const WEATHER=getActiveWorld().weather;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const point=p=>({x:p.x,y:p.y,z:p.z});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
@@ -25,6 +20,7 @@ function groundNormal(x,s){
 }
 export class RaceEngine {
  constructor(goats,hazards,event=()=>{},options={}){
+  this.mountain=getActiveWorld();this.pits=spikePits();this.lava=lavaFlows();
   this.goats=goats;this.hazards=hazards;this.event=event;this.wildlife=options.wildlife||[];this.skiers=options.skiers||[];
   this.boosts=options.boosts||courseBoosts();
   this.snowmobiles=options.snowmobiles||[];
@@ -35,7 +31,7 @@ export class RaceEngine {
   this.setupPhysics();
  }
  setupPhysics(){
-  this.world=new CANNON.World({gravity:new CANNON.Vec3(0,-24,0),allowSleep:false});
+  this.world=new CANNON.World({gravity:new CANNON.Vec3(0,-24*this.mountain.gravityScale,0),allowSleep:false});
   this.world.broadphase=new CANNON.SAPBroadphase(this.world);this.world.solver.iterations=10;
   this.world.defaultContactMaterial.friction=.4;this.world.defaultContactMaterial.restitution=.23;
   const material=this.groundMaterial=new CANNON.Material({friction:1,restitution:1});
@@ -68,7 +64,7 @@ export class RaceEngine {
  }
  random(){this.seed=(Math.imul(this.seed,1664525)+1013904223)>>>0;return this.seed/4294967296;}
  envRandom(){this.environmentSeed=(Math.imul(this.environmentSeed,1664525)+1013904223)>>>0;return this.environmentSeed/4294967296;}
- get weather(){return WEATHER[this.weatherIndex];}
+ get weather(){return this.mountain.weather[this.weatherIndex];}
  sync(g){
   const b=g.body,p=b.position;g.s=-p.z;g.x=p.x-center(g.s);g.jump=Math.max(0,p.y-sampleGroundHeight(p.x,g.s)-1.05);
   g.vx=b.velocity.x;g.speed=b.velocity.length();g.grounded=g.jump<.7;g.touchingGround=false;g.supportNormal=groundNormal(p.x,g.s);g.roadHeading=roadDerivative(g.s);
@@ -210,7 +206,7 @@ export class RaceEngine {
   if(this.phase==='countdown'){this.counter-=dt;if(this.counter<=0){this.phase='racing';this.event('go');}return;}
   if(!['racing','celebrating'].includes(this.phase))return;
   if(this.phase==='celebrating'){this.celebrateRemaining=Math.max(0,this.celebrateRemaining-dt);if(this.celebrateRemaining===0){this.phase='finished';this.event('finish');return;}}
-  this.elapsed+=dt;const wi=this.phase==='celebrating'?this.weatherIndex:Math.floor(this.elapsed/18)%WEATHER.length;
+  this.elapsed+=dt;const wi=this.phase==='celebrating'?this.weatherIndex:Math.floor(this.elapsed/18)%this.mountain.weather.length;
   if(wi!==this.weatherIndex){this.weatherIndex=wi;this.event('weather',this.weather);}
   if(this.phase==='racing')this.updateEnvironment(dt);
   for(const h of this.hazards){if(h.destroyed)continue;if(h.kind==='bear')h.x=h.baseX+Math.sin(this.elapsed*1.3+h.s)*1.8;if(['hunter','gunner'].includes(h.kind))this.updateHunter(h,dt);}
@@ -240,8 +236,12 @@ export class RaceEngine {
   this.updateEntities(dt);
   for(const g of this.goats){
    if(g.dead||g.finishTime!==null||g.respawnedThisStep)continue;
-   for(const pit of SPIKE_PITS){
-    if(Math.hypot(g.body.position.x-center(pit.s)-pit.x,g.s-pit.s)<pit.r*.77&&g.body.position.y<baseTerrainHeight(g.body.position.x,g.s)-1.1)this.kill(g,'Пики в яме!',-1,true);
+   for(const flow of this.lava){
+    if(lavaContact(g.previousPosition||g.body.position,g.body.position,flow)!==null)this.kill(g,this.mountain.hazardNames.lava+' · поток №'+(flow.id+1),-1,true);
+   }
+   if(g.dead)continue;
+   for(const pit of this.pits){
+    if(Math.hypot(g.body.position.x-center(pit.s)-pit.x,g.s-pit.s)<pit.r*.77&&g.body.position.y<baseTerrainHeight(g.body.position.x,g.s)-1.1)this.kill(g,this.mountain.hazardNames.spikes,-1,true);
    }
    for(const h of this.hazards){
     if(h.destroyed||h.kind==='hunter'||h.kind==='ramp')continue;
@@ -250,7 +250,7 @@ export class RaceEngine {
     const from=g.previousPosition,to=g.body.position,a={x:center(h.s)+h.x,y:sampleGroundHeight(center(h.s)+h.x,h.s)+(h.kind==='bear'?1.2:h.r*.7),z:-h.s};
     if(!from||sweptSphereContact(from,to,a,a,h.r+1.05)===null)continue;
     h.hit.add(g.id);
-    if(h.kind==='bear'){if(g.spring>0){g.body.applyImpulse(new CANNON.Vec3((g.x>h.x?1:-1)*7*9,7*3,0));this.event('bounce',g);}else this.kill(g,'Медведь!');}
+    if(h.kind==='bear'){if(g.spring>0){g.body.applyImpulse(new CANNON.Vec3((g.x>h.x?1:-1)*7*9,7*3,0));this.event('bounce',g);}else this.kill(g,h.sourceName||this.mountain.hazardNames.bear+'!');}
     else if(g.invulnerable<=0)this.event('obstacle',{goat:g,kind:h.kind});
    }
    if(g.s>=LENGTH&&!g.dead){
@@ -291,7 +291,7 @@ export class RaceEngine {
   if(h.kind==='gunner'&&h.warning<=0&&h.burstRemaining>0){h.burstTimer=(h.burstTimer||0)-dt;if(h.burstTimer<=0){this.fireBullet(h);h.burstRemaining--;h.burstTimer=.11;h.fire=2.3+this.random();}}
  }
  fireBullet(h){
-  const aim=h.aim,e=this.add({kind:'bullet',owner:-1,position:{...aim.from},velocity:{x:aim.velocity.x+(h.kind==='gunner'?(this.random()-.5)*3:0),y:aim.velocity.y,z:aim.velocity.z+(h.kind==='gunner'?(this.random()-.5)*3:0)},history:[{...aim.from}],sourceName:h.sourceName||(h.kind==='gunner'?'Пулемётчик в доме':'Охотник'),sourceKind:h.kind,life:2.8});
+  const aim=h.aim,e=this.add({kind:'bullet',owner:-1,position:{...aim.from},velocity:{x:aim.velocity.x+(h.kind==='gunner'?(this.random()-.5)*3:0),y:aim.velocity.y,z:aim.velocity.z+(h.kind==='gunner'?(this.random()-.5)*3:0)},history:[{...aim.from}],sourceName:h.sourceName||this.mountain.hazardNames[h.kind],sourceKind:h.kind,life:2.8});
   h.lastShot=this.elapsed;this.event('shot',{hunter:h,bullet:e});
  }
  destroyNpc(target,owner,position,type){
@@ -311,7 +311,7 @@ export class RaceEngine {
   if(e.detonated)return false;e.detonated=true;e.life=0;
   const p=e.body?point(e.body.position):e.position,r=e.radius||5.8,owner=this.goats.find(g=>g.id===e.owner);
   this.event('explosion',{position:p,radius:r,owner:e.owner,kind:e.kind});
-  for(const g of this.goats)if(g.id!==e.owner&&distance(g.body.position,p)<r+1)this.kill(g,e.owner<0?'Кассетная бомба':'Бомба · '+(owner?.character?.name||owner?.name||'соперник'),e.owner);
+  for(const g of this.goats)if(g.id!==e.owner&&distance(g.body.position,p)<r+1)this.kill(g,e.owner<0?this.mountain.hazardNames.cluster:'Бомба · '+(owner?.character?.name||owner?.name||'соперник'),e.owner);
   for(const h of this.hazards)if(['bear','hunter'].includes(h.kind)&&!h.destroyed){
    const a={x:center(h.s)+h.x,y:sampleGroundHeight(center(h.s)+h.x,h.s)+1,z:-h.s};
    if(distance(a,p)<r+1.5)this.destroyNpc(h,owner,a,'hazard');
@@ -334,7 +334,7 @@ export class RaceEngine {
    if(player.s<LENGTH-180){for(let i=0;i<2;i++){const s=Math.min(LENGTH-25,anchor.s+145+i*22),x=center(s)+(i?6:-6)+(this.envRandom()-.5)*5;this.add({kind:'yeti',owner:-1,position:{x,y:sampleGroundHeight(x,s)+2.2,z:-s},radius:2.5,life:28,speed:6.5+this.envRandom()*1.5,baseX:x-center(s),previousPosition:null,destroyed:false});}}
    this.yetiTimer=15+this.envRandom()*9;
   }
-  if(this.weather.name==='Гроза'){
+  if(this.weather.kind==='storm'){
    this.lightningTimer-=dt;
    if(this.lightningTimer<=0){
     const strikes=2+(this.envRandom()<.35?1:0);
@@ -384,7 +384,7 @@ export class RaceEngine {
     if(e.destroyed){e.life=0;continue;}
     e.previousPosition={...e.position};const before=-e.position.z,s=before-e.speed*dt,target=chooseHazardTarget(this,e,170);
     e.position.x+=center(s)-center(before);const lane=e.baseX+(target?clamp(target.x-e.baseX,-3,3):0);e.position.x+=clamp(center(s)+lane-e.position.x,-dt*.9,dt*.9);e.position.z=-s;e.position.y=sampleGroundHeight(e.position.x,s)+2.2;
-    for(const g of this.goats){if(g.dead||g.finishTime!==null||g.respawnedThisStep)continue;const contact=sweptSphereContact(g.previousPosition||g.body.position,g.body.position,e.previousPosition,e.position,e.radius+1.05);if(contact!==null)this.kill(g,'Йети №'+e.id);}
+    for(const g of this.goats){if(g.dead||g.finishTime!==null||g.respawnedThisStep)continue;const contact=sweptSphereContact(g.previousPosition||g.body.position,g.body.position,e.previousPosition,e.position,e.radius+1.05);if(contact!==null)this.kill(g,e.sourceName||this.mountain.hazardNames.yeti+' №'+e.id);}
     if(s<this.goats[0].s-90)e.life=0;
    }else if(e.kind==='bomber'){
     const v=e.velocity,s=-e.position.z,heading=Math.atan(roadDerivative(s))+(e.headingOffset||0);v.x=-Math.sin(heading)*42;v.z=Math.cos(heading)*42;
@@ -397,7 +397,7 @@ export class RaceEngine {
     e.warning-=dt;
     if(e.warning<=0&&!e.struck){
      e.struck=true;this.event('lightning',{position:e.position,radius:e.radius});
-     for(const g of this.goats)if(Math.hypot(g.body.position.x-e.position.x,g.body.position.z-e.position.z)<e.radius)this.kill(g,'Молния!');
+     for(const g of this.goats)if(Math.hypot(g.body.position.x-e.position.x,g.body.position.z-e.position.z)<e.radius)this.kill(g,this.mountain.hazardNames.lightning);
     }
    }
   }
@@ -407,6 +407,6 @@ export class RaceEngine {
   });
  }
  state(){
-  return {phase:this.phase,seconds:Math.round(this.elapsed*10)/10,weather:this.weather.name,place:this.ranking().findIndex(g=>g.id===0)+1,remaining:Math.round(Math.max(0,LENGTH-this.goats[0].s)),racers:this.ranking().map(g=>({name:g.name,distance:Math.round(g.s),speed:Math.round(g.speed*3.6),airborne:g.jump>.5,respawning:g.dead>0,finishTime:g.finishTime,bonusPoints:g.score,kills:g.kills,rage:g.rage,snowmobileSeconds:g.rideTime,stats:g.stats})),bonusPoints:this.goats[0].score,rage:this.goats[0].rage,wildlifeRemaining:this.wildlife.filter(a=>!a.consumed).length,skiersRemaining:this.skiers.filter(a=>!a.consumed).length,abilities:{...this.goats[0].cd},stats:this.goats[0].stats,lastDeath:this.goats[0].lastDeath,entities:this.entities.map(e=>({kind:e.kind,owner:e.owner}))};
+  return {mountain:this.mountain.title,mountainId:this.mountain.id,phase:this.phase,seconds:Math.round(this.elapsed*10)/10,weather:this.weather.name,place:this.ranking().findIndex(g=>g.id===0)+1,remaining:Math.round(Math.max(0,LENGTH-this.goats[0].s)),racers:this.ranking().map(g=>({name:g.name,distance:Math.round(g.s),speed:Math.round(g.speed*3.6),airborne:g.jump>.5,respawning:g.dead>0,finishTime:g.finishTime,bonusPoints:g.score,kills:g.kills,rage:g.rage,snowmobileSeconds:g.rideTime,stats:g.stats})),bonusPoints:this.goats[0].score,rage:this.goats[0].rage,wildlifeRemaining:this.wildlife.filter(a=>!a.consumed).length,skiersRemaining:this.skiers.filter(a=>!a.consumed).length,abilities:{...this.goats[0].cd},stats:this.goats[0].stats,lastDeath:this.goats[0].lastDeath,entities:this.entities.map(e=>({kind:e.kind,owner:e.owner}))};
  }
 }
