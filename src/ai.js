@@ -39,7 +39,7 @@ export function botControls(engine,g,dt){
  }
  const look=clamp(Math.max(10,-v.z)*.8,12,26),course=Math.atan((center(g.s+.2)-center(g.s-.2))/.4);
  const desired=Math.atan2(center(g.s+look)+ai.target-g.body.position.x,look);
- const turn=clamp((desired-course)/(.235),-1,1);
+ const turn=clamp((desired-course)/engine.maxSteerAngle,-1,1);
  const frontPit=engine.pits.find(p=>p.s>g.s+2&&p.s<g.s+Math.max(9,-v.z*.45)&&Math.abs(g.x-p.x)<p.r+1.5);
  const lavaAhead=engine.lava.some(flow=>{const s=g.s+Math.max(4,-v.z*.25);return Math.abs(s-flow.s)<flow.r+1&&Math.abs(g.x-lavaPathX(flow,s))<flow.halfWidth+1;});
  if((frontPit||lavaAhead)&&g.grounded&&g.cd.jump===0)engine.ability(g,'jump');

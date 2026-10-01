@@ -7,6 +7,7 @@ import {botControls} from './ai.js';
 import {chooseHazardTarget} from './combat-targets.js';
 import {getActiveWorld} from './worlds.js';
 export {LENGTH};
+export const MAX_STEER_ANGLE=.48;
 export const WEATHER=getActiveWorld().weather;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const point=p=>({x:p.x,y:p.y,z:p.z});
@@ -20,7 +21,7 @@ function groundNormal(x,s){
 }
 export class RaceEngine {
  constructor(goats,hazards,event=()=>{},options={}){
-  this.mountain=getActiveWorld();this.pits=spikePits();this.lava=lavaFlows();
+  this.maxSteerAngle=MAX_STEER_ANGLE;this.mountain=getActiveWorld();this.pits=spikePits();this.lava=lavaFlows();
   this.goats=goats;this.hazards=hazards;this.event=event;this.wildlife=options.wildlife||[];this.skiers=options.skiers||[];
   this.boosts=options.boosts||courseBoosts();
   this.snowmobiles=options.snowmobiles||[];
@@ -176,8 +177,8 @@ export class RaceEngine {
  }
  steerAndDrive(g,dt,input,drive){
   const b=g.body,normal=g.supportNormal||groundNormal(b.position.x,g.s);
-  const steerResponse=(g.grounded?4.5:2.5)*this.weather.steer;
-  g.turnAngle=(g.turnAngle||0)+(clamp(input,-1,1)*.235-(g.turnAngle||0))*(1-Math.exp(-dt*steerResponse));
+  const steerResponse=(g.grounded?9:7)*this.weather.steer;
+  g.turnAngle=(g.turnAngle||0)+(clamp(input,-1,1)*this.maxSteerAngle-(g.turnAngle||0))*(1-Math.exp(-dt*steerResponse));
   const heading=Math.atan(roadDerivative(g.s))+g.turnAngle;
   const forward=new CANNON.Vec3(Math.sin(heading),0,-Math.cos(heading));
   forward.vsub(normal.scale(forward.dot(normal)),forward);forward.normalize();
@@ -185,7 +186,11 @@ export class RaceEngine {
   const forwardSpeed=v.dot(forward),driveStrength=clamp(drive,0,1)*23*rageFactor*ride*clamp(1-forwardSpeed/(43*rageFactor*ride),0,1);
   const acceleration=driveStrength*(g.grounded?1:.16);
   const lateral=new CANNON.Vec3(Math.cos(heading),0,Math.sin(heading));
-  const sideDrag=clamp(v.dot(lateral)*this.weather.lateralGrip*(g.grounded?1:.2),-10*ride,10*ride);
+  // Redirect momentum toward the turned wheel, rather than shifting its position.
+  // Authority grows with speed so wind and a 3x vehicle cannot erase the input.
+  const traction=this.weather.lateralGrip*2.2*(g.grounded?1:.6)*(g.onIce?.78:1);
+  const sideLimit=(18+speed*.85)*(g.grounded?1:.75)*(g.onIce?.85:1);
+  const sideDrag=clamp(v.dot(lateral)*traction,-sideLimit,sideLimit);
   const boost=g.boostTime>0?26*ride*clamp(1-forwardSpeed/(43*ride),0,1)*(g.grounded?1:.25):0;
   const gust=(Math.sin(this.elapsed*1.12+g.s*.012)*.8+Math.sin(this.elapsed*2.37+.9)*.35)*this.weather.wind;
   b.applyForce(new CANNON.Vec3(-v.x*speed*drag+gust*7+forward.x*7*(acceleration+boost)-lateral.x*7*sideDrag,-v.y*speed*drag*.35+forward.y*7*(acceleration+boost),-v.z*speed*drag+forward.z*7*(acceleration+boost)-lateral.z*7*sideDrag));
@@ -237,11 +242,11 @@ export class RaceEngine {
   for(const g of this.goats){
    if(g.dead||g.finishTime!==null||g.respawnedThisStep)continue;
    for(const flow of this.lava){
-    if(lavaContact(g.previousPosition||g.body.position,g.body.position,flow)!==null)this.kill(g,this.mountain.hazardNames.lava+' · поток №'+(flow.id+1),-1,true);
+    if(lavaContact(g.previousPosition||g.body.position,g.body.position,flow)!==null)this.kill(g,this.mountain.hazardNames.lava+' · поток №'+(flow.id+1),-1);
    }
    if(g.dead)continue;
    for(const pit of this.pits){
-    if(Math.hypot(g.body.position.x-center(pit.s)-pit.x,g.s-pit.s)<pit.r*.77&&g.body.position.y<baseTerrainHeight(g.body.position.x,g.s)-1.1)this.kill(g,this.mountain.hazardNames.spikes,-1,true);
+    if(Math.hypot(g.body.position.x-center(pit.s)-pit.x,g.s-pit.s)<pit.r*.77&&g.body.position.y<baseTerrainHeight(g.body.position.x,g.s)-1.1)this.kill(g,this.mountain.hazardNames.spikes,-1);
    }
    for(const h of this.hazards){
     if(h.destroyed||h.kind==='hunter'||h.kind==='ramp')continue;

@@ -4,7 +4,7 @@ export const center=s=>Math.sin(s/170)*22+Math.sin(s/63)*4;
 export const height=s=>650-s*.53+Math.sin(s/110)*7+Math.sin(s/23)*1.7;
 export function baseTerrainHeight(x,s){const offset=x-center(s);const ridge=Math.max(0,Math.abs(offset)-22)*.12;const swell=Math.sin(s*.105+x*.073)*2.4+Math.sin(s*.23-x*.16)*1.1+Math.cos(x*.29+s*.061)*.8;const ledges=Math.sin(s*.042+x*.017)*2.4-2.8*Math.tanh(Math.sin(s*.055+x*.012)*4.5);return height(s)+ridge+offset*offset*.0013+swell+ledges;}
 export const SPIKE_PITS=Array.from({length:11},(_,i)=>({id:i,s:260+i*172,x:(i%3-1)*6,r:4.8+(i%2)*.6,depth:5.5+(i%3)*.35}));
-export const LAVA_FLOWS=SPIKE_PITS.map(pit=>({id:pit.id,s:pit.s,x:pit.x,r:14+(pit.id%3)*2,halfWidth:2.6,length:2*(14+(pit.id%3)*2)}));
+export const LAVA_FLOWS=SPIKE_PITS.map(pit=>{const r=(14+(pit.id%3)*2)/1.5;return {id:pit.id,s:pit.s,x:pit.x,r,halfWidth:2.6,length:r*2};});
 export function spikePits(){return getActiveWorld().id==='hell'?[]:SPIKE_PITS;}
 export function lavaFlows(){return getActiveWorld().id==='hell'?LAVA_FLOWS:[];}
 export const lavaPathX=(flow,s)=>flow.x+Math.sin((s-flow.s)*.11)*4;
@@ -18,7 +18,7 @@ export function sampleGroundHeight(x,s){
  return u+v<=1?a+(b-a)*u+(c-a)*v:d+(c-d)*(1-u)+(b-d)*(1-v);
 }
 // Check the entire fixed-step movement, including fast snowmobile crossings.
-// A racer can jump over the stream, while a grounded protected racer still burns.
+// A racer can jump over the stream; protection is handled by the race engine.
 export function lavaContact(from,to,flow,radius=1.05){
  const fromS=-from.z,toS=-to.z,padding=radius*.55;
  if(Math.max(fromS,toS)<flow.s-flow.r-padding||Math.min(fromS,toS)>flow.s+flow.r+padding)return null;
