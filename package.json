@@ -1,0 +1,1 @@
+{"name":"goat-downhill","private":true,"type":"module","scripts":{"build":"esbuild src/game.js --bundle --minify --format=esm --outfile=dist/game.js","start":"python3 -m http.server 4173 --directory dist"},"dependencies":{"cannon-es":"0.20.0","three":"^0.180.0"},"devDependencies":{"esbuild":"^0.25.10"}}

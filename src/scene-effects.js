@@ -1,0 +1,28 @@
+import {sampleGroundHeight,center,LENGTH} from './terrain.js';
+export function createSceneEffects(THREE,scene){
+ const drops=Array.from({length:800},()=>({life:0,p:new THREE.Vector3(),v:new THREE.Vector3()}));let cursor=0,stainCursor=0;
+ const positions=new Float32Array(drops.length*3);positions.fill(-10000);
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));
+ const blood=new THREE.Points(geometry,new THREE.PointsMaterial({color:0xb70722,size:.38,transparent:true,opacity:.95,depthWrite:false}));blood.frustumCulled=false;scene.add(blood);
+ const stains=new THREE.InstancedMesh(new THREE.CircleGeometry(1,14),new THREE.MeshBasicMaterial({color:0x890617,side:THREE.DoubleSide,transparent:true,opacity:.86,depthWrite:false}),64);stains.frustumCulled=false;scene.add(stains);
+ const stainTimes=new Float32Array(64),stainMatrices=Array.from({length:64},()=>new THREE.Matrix4());
+ const temp=new THREE.Object3D();
+ function reset(){for(const d of drops)d.life=0;positions.fill(-10000);geometry.attributes.position.needsUpdate=true;for(let i=0;i<64;i++){temp.position.set(0,-10000,0);temp.scale.setScalar(0);temp.updateMatrix();stains.setMatrixAt(i,temp.matrix);stainTimes[i]=0;}stains.instanceMatrix.needsUpdate=true;party.reset();}
+ function bloodBurst(p,scale=1){
+  for(let i=0;i<64;i++){const d=drops[cursor++%drops.length];d.life=.8+Math.random()*1.3;d.p.set(p.x+(Math.random()-.5)*scale,p.y+(Math.random()-.5)*scale,p.z+(Math.random()-.5)*scale);d.v.set((Math.random()-.5)*19*scale,4+Math.random()*11,(Math.random()-.5)*19*scale);}
+  for(let i=0;i<4;i++){const index=stainCursor++%64,x=p.x+(Math.random()-.5)*3*scale,s=-p.z+(Math.random()-.5)*3*scale;temp.position.set(x,sampleGroundHeight(x,s)+.12,-s);const normal=new THREE.Vector3(-(sampleGroundHeight(x+.3,s)-sampleGroundHeight(x-.3,s))/.6,1,(sampleGroundHeight(x,s+.3)-sampleGroundHeight(x,s-.3))/.6).normalize();temp.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),normal);temp.scale.set((.6+Math.random()*.7)*scale,(.4+Math.random()*.6)*scale,1);temp.updateMatrix();stainMatrices[index].copy(temp.matrix);stains.setMatrixAt(index,temp.matrix);stainTimes[index]=16;}stains.instanceMatrix.needsUpdate=true;
+ }
+ const sparks=Array.from({length:1200},()=>({life:0,p:new THREE.Vector3(),v:new THREE.Vector3(),confetti:false})),sparkPos=new Float32Array(sparks.length*3),sparkColors=new Float32Array(sparks.length*3);let sparkCursor=0;
+ sparkPos.fill(-10000);const sparkGeo=new THREE.BufferGeometry();sparkGeo.setAttribute('position',new THREE.BufferAttribute(sparkPos,3).setUsage(THREE.DynamicDrawUsage));sparkGeo.setAttribute('color',new THREE.BufferAttribute(sparkColors,3).setUsage(THREE.DynamicDrawUsage));
+ const fireworks=new THREE.Points(sparkGeo,new THREE.PointsMaterial({vertexColors:true,size:.23,transparent:true,opacity:.95,depthWrite:false,toneMapped:false}));fireworks.frustumCulled=false;scene.add(fireworks);
+ const palette=[0xffe05e,0xff538e,0x70f4ff,0xa0ff69,0xb79cff],origin=new THREE.Vector3(center(LENGTH),sampleGroundHeight(center(LENGTH),LENGTH),-LENGTH);
+ function sparkle(p,count,color,confetti=false){const c=new THREE.Color(color);for(let i=0;i<count;i++){const index=sparkCursor++%sparks.length,d=sparks[index];d.life=confetti?2+Math.random()*3:1+Math.random()*1.3;d.confetti=confetti;d.p.copy(p);const direction=new THREE.Vector3(Math.random()-.5,Math.random()-.35,Math.random()-.5).normalize();d.v.copy(direction).multiplyScalar(confetti?7:8+Math.random()*7);sparkColors[index*3]=c.r;sparkColors[index*3+1]=c.g;sparkColors[index*3+2]=c.b;}sparkGeo.attributes.color.needsUpdate=true;}
+ const rockets=[];
+ const party={active:false,time:0,next:0,bursts:0,start(){this.active=true;this.time=0;this.next=0;this.bursts=0;},reset(){this.active=false;this.time=0;this.bursts=0;rockets.length=0;for(const d of sparks)d.life=0;sparkPos.fill(-10000);sparkGeo.attributes.position.needsUpdate=true;},update(dt){
+  if(this.active&&dt>0){this.time+=dt;this.next-=dt;if(this.next<=0){this.next=.48;const side=this.bursts%2?1:-1;rockets.push({p:origin.clone().add(new THREE.Vector3(side*(16+Math.random()*10),1,-23)),v:new THREE.Vector3(-side*4,31+Math.random()*7,0),life:.72,color:palette[this.bursts%5]});sparkle(origin.clone().add(new THREE.Vector3((Math.random()-.5)*24,6,-15)),90,palette[(this.bursts+2)%5],true);this.bursts++;}}
+  for(let i=rockets.length-1;i>=0;i--){const r=rockets[i];r.life-=dt;r.p.addScaledVector(r.v,dt);if(dt>0)sparkle(r.p,2,r.color);if(r.life<=0){sparkle(r.p,100,r.color);rockets.splice(i,1);}}
+  for(let i=0;i<sparks.length;i++){const d=sparks[i];if(d.life>0){d.life-=dt;d.v.y-=(d.confetti?2.7:6)*dt;d.p.addScaledVector(d.v,dt);if(d.confetti)d.p.x+=Math.sin(this.time*5+i)*dt*.9;}sparkPos[i*3]=d.life>0?d.p.x:-10000;sparkPos[i*3+1]=d.life>0?d.p.y:-10000;sparkPos[i*3+2]=d.life>0?d.p.z:-10000;}sparkGeo.attributes.position.needsUpdate=true;
+ }};
+ function update(dt){for(let i=0;i<drops.length;i++){const d=drops[i];if(d.life>0){d.life-=dt;d.v.y-=22*dt;d.p.addScaledVector(d.v,dt);const ground=sampleGroundHeight(d.p.x,-d.p.z)+.12;if(d.p.y<ground){d.p.y=ground;d.v.set(0,0,0);d.life=Math.min(d.life,.3);}}positions[i*3]=d.life>0?d.p.x:-10000;positions[i*3+1]=d.life>0?d.p.y:-10000;positions[i*3+2]=d.life>0?d.p.z:-10000;}geometry.attributes.position.needsUpdate=true;for(let i=0;i<64;i++)if(stainTimes[i]>0){stainTimes[i]=Math.max(0,stainTimes[i]-dt);if(stainTimes[i]===0){temp.position.set(0,-10000,0);temp.scale.setScalar(0);temp.updateMatrix();stains.setMatrixAt(i,temp.matrix);stains.instanceMatrix.needsUpdate=true;}}party.update(dt);}
+ reset();return {blood,bloodBurst,stains,drops,stainTimes,fireworks,party,update,reset};
+}
