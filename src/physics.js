@@ -1,11 +1,12 @@
 import * as CANNON from 'cannon-es';
 import {LENGTH,CELL,MIN_X,MIN_S,center,terrainData,sampleGroundHeight,baseTerrainHeight,spikePits,lavaFlows,lavaContact} from './terrain.js';
-import {resetWildlife,updateWildlife,sweptSphereContact} from './wildlife.js';
+import {resetWildlife,updateWildlife,sweptSphereContact,wildlifePosition} from './wildlife.js';
 import {spawnPosition} from './racers.js';
 import {courseBoosts,localBoostPosition,rampSurfaceAt} from './boosts.js';
 import {botControls} from './ai.js';
 import {chooseHazardTarget} from './combat-targets.js';
 import {getActiveWorld} from './worlds.js';
+import {vehicleImpact} from './vehicle-impact.js';
 export {LENGTH};
 export const MAX_STEER_ANGLE=.48;
 export const WEATHER=getActiveWorld().weather;
@@ -13,6 +14,7 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const point=p=>({x:p.x,y:p.y,z:p.z});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const roadDerivative=s=>(center(s+.2)-center(s-.2))/.4;
+const readableCause=value=>String(value).replace(/\s*(?:№|#)\s*\d+/g,'').replace(/\s{2,}/g,' ').trim();
 const newStats=()=>({kills:{},bombs:0,traps:0,deaths:0,snowmobiles:0,deathReasons:{}});
 function groundNormal(x,s){
  const nx=-(sampleGroundHeight(x+.3,s)-sampleGroundHeight(x-.3,s))/.6;
@@ -130,6 +132,7 @@ export class RaceEngine {
  }
  kill(g,reason,killerId=-1,bypassInvulnerability=false){
   if(g.dead||(!bypassInvulnerability&&g.invulnerable>0)||g.finishTime!==null)return false;
+  reason=readableCause(reason);
   g.dead=.85;g.speed=0;g.vx=0;g.body.collisionFilterMask=0;g.body.type=CANNON.Body.KINEMATIC;
   g.body.velocity.set(0,0,0);g.body.angularVelocity.set(0,0,0);
   const wasRiding=g.rideTime>0;g.trickActive=false;
@@ -191,7 +194,7 @@ export class RaceEngine {
   const traction=this.weather.lateralGrip*2.2*(g.grounded?1:.6)*(g.onIce?.78:1);
   const sideLimit=(18+speed*.85)*(g.grounded?1:.75)*(g.onIce?.85:1);
   const sideDrag=clamp(v.dot(lateral)*traction,-sideLimit,sideLimit);
-  const boost=g.boostTime>0?26*ride*clamp(1-forwardSpeed/(43*ride),0,1)*(g.grounded?1:.25):0;
+  const boost=g.boostTime>0?42*ride*clamp(1-forwardSpeed/(60*ride),0,1)*(g.grounded?1:.25):0;
   const gust=(Math.sin(this.elapsed*1.12+g.s*.012)*.8+Math.sin(this.elapsed*2.37+.9)*.35)*this.weather.wind;
   b.applyForce(new CANNON.Vec3(-v.x*speed*drag+gust*7+forward.x*7*(acceleration+boost)-lateral.x*7*sideDrag,-v.y*speed*drag*.35+forward.y*7*(acceleration+boost),-v.z*speed*drag+forward.z*7*(acceleration+boost)-lateral.z*7*sideDrag));
   // Align the axle, preserving spin along it and allowing some lean and drift.
@@ -216,7 +219,7 @@ export class RaceEngine {
   if(this.phase==='racing')this.updateEnvironment(dt);
   for(const h of this.hazards){if(h.destroyed)continue;if(h.kind==='bear')h.x=h.baseX+Math.sin(this.elapsed*1.3+h.s)*1.8;if(['hunter','gunner'].includes(h.kind))this.updateHunter(h,dt);}
   for(const g of this.goats){
-   g.respawnedThisStep=false;g.previousPosition=null;
+   g.respawnedThisStep=false;g.previousPosition=null;g.previousVelocity=null;
    for(const k of Object.keys(g.cd))g.cd[k]=Math.max(0,g.cd[k]-dt);
    for(const k of ['invulnerable','spring','slow','bumpCd','boostTime'])g[k]=Math.max(0,(g[k]||0)-dt);
    if(g.finishTime!==null)continue;
@@ -229,12 +232,13 @@ export class RaceEngine {
    g.lastS=g.s;g.lastX=g.x;g.previousPosition=point(g.body.position);g.wasTouching=g.touchingGround;g.preImpactSpeed=Math.max(0,-g.body.velocity.y);
    g.body.material.friction=this.weather.grip;g.body.material.restitution=g.rideTime>0?.08:g.spring>0?.88:.24;
    this.applyBoosts(g,dt);
-   this.steerAndDrive(g,dt,input,push);
+   this.steerAndDrive(g,dt,input,push);g.previousVelocity=point(g.body.velocity);
    if(Math.abs(g.x)>125||g.body.position.y<sampleGroundHeight(g.body.position.x,g.s)-12)this.kill(g,'Слетел с горы');
   }
   this.world.step(dt);
   for(const g of this.goats)if(!g.dead&&g.finishTime===null){this.sync(g);this.updateLanding(g,dt);}
-  for(const pickup of this.snowmobiles){if(pickup.consumed)continue;const x=center(pickup.s)+pickup.x,position={x,y:sampleGroundHeight(x,pickup.s)+1,z:-pickup.s};for(const g of this.goats){if(g.dead||g.finishTime!==null||g.rideTime>0||g.respawnedThisStep)continue;if(sweptSphereContact(g.previousPosition||g.body.position,g.body.position,position,position,2.2)!==null){pickup.consumed=true;g.rideTime=10;g.trickActive=false;g.trickAirborne=false;g.stats.snowmobiles++;g.body.velocity.scale(3,g.body.velocity);this.event('ride',{goat:g,pickup,position});break;}}}
+  for(const pickup of this.snowmobiles){if(pickup.consumed)continue;const x=center(pickup.s)+pickup.x,position={x,y:sampleGroundHeight(x,pickup.s)+1,z:-pickup.s};for(const g of this.goats){if(g.dead||g.finishTime!==null||g.rideTime>0||g.respawnedThisStep)continue;if(sweptSphereContact(g.previousPosition||g.body.position,g.body.position,position,position,2.2)!==null){pickup.consumed=true;g.rideTime=7;g.trickActive=false;g.trickAirborne=false;g.stats.snowmobiles++;g.body.velocity.scale(3,g.body.velocity);this.event('ride',{goat:g,pickup,position});break;}}}
+  this.updateRideImpacts(dt);
   const npcEvent=(type,data)=>{this.award(data.goat,data.points,data.animal.kind, data.position,true);this.event(type,data);};
   updateWildlife(this.wildlife,this.goats,this.elapsed,dt,npcEvent);
   updateWildlife(this.skiers,this.goats,this.elapsed,dt,npcEvent);
@@ -242,7 +246,7 @@ export class RaceEngine {
   for(const g of this.goats){
    if(g.dead||g.finishTime!==null||g.respawnedThisStep)continue;
    for(const flow of this.lava){
-    if(lavaContact(g.previousPosition||g.body.position,g.body.position,flow)!==null)this.kill(g,this.mountain.hazardNames.lava+' · поток №'+(flow.id+1),-1);
+    if(lavaContact(g.previousPosition||g.body.position,g.body.position,flow)!==null)this.kill(g,this.mountain.hazardNames.lava,-1);
    }
    if(g.dead)continue;
    for(const pit of this.pits){
@@ -269,6 +273,44 @@ export class RaceEngine {
    if(a.dead||b.dead||a.invulnerable>0||b.invulnerable>0||a.bumpCd||b.bumpCd||a.finishTime!==null||b.finishTime!==null)continue;
    if(distance(a.body.position,b.body.position)<2.2){const dir=a.x>=b.x?1:-1,power=a.spring>0||b.spring>0?11:4;a.body.applyImpulse(new CANNON.Vec3(dir*power*7,a.spring>0?14:0,0));b.body.applyImpulse(new CANNON.Vec3(-dir*power*7,b.spring>0?14:0,0));a.bumpCd=.4;b.bumpCd=.4;if(a.spring>0||b.spring>0)this.event('bounce',a.id===0?a:b);}
   }
+ }
+ crushNpcWithVehicle(target,type,from,to,radius,dt){
+  let winner=null,contact=null;
+  for(const rider of this.goats){
+   if(rider.dead||rider.finishTime!==null||rider.respawnedThisStep||rider.rideTime<=0)continue;
+   const hit=vehicleImpact(rider,from,to,radius,dt);
+   if(hit&&(!contact||hit.time<contact.time||(hit.time===contact.time&&rider.id<winner.id))){winner=rider;contact=hit;}
+  }
+  if(!winner)return false;
+  if(type==='moving'){target.previous=from;target.position=to;}
+  return this.destroyNpc(target,winner,contact.position,type);
+ }
+ updateRideImpacts(dt){
+  if(!this.goats.some(g=>g.rideTime>0&&!g.dead&&g.finishTime===null))return;
+  for(const h of this.hazards){
+   if(h.destroyed||!['bear','hunter'].includes(h.kind))continue;
+   const x=center(h.s)+h.x,to={x,y:sampleGroundHeight(x,h.s)+(h.kind==='bear'?1.2:1.05),z:-h.s};
+   const previousX=h.kind==='bear'?(h.baseX??h.x)+Math.sin((this.elapsed-dt)*1.3+h.s)*1.8:h.x;
+   const px=center(h.s)+previousX,from={x:px,y:sampleGroundHeight(px,h.s)+(h.kind==='bear'?1.2:1.05),z:-h.s};
+   this.crushNpcWithVehicle(h,'hazard',from,to,h.r,dt);
+  }
+  for(const a of [...this.wildlife,...this.skiers]){
+   if(a.consumed)continue;
+   const from=a.position,to=wildlifePosition(a,this.elapsed);
+   if(a.kind==='skier'&&Math.hypot(to.x-from.x,to.z-from.z)>20)continue;
+   this.crushNpcWithVehicle(a,'moving',from,to,a.radius,dt);
+  }
+  const hits=[];
+  for(const rider of this.goats){
+   if(rider.dead||rider.finishTime!==null||rider.respawnedThisStep||rider.rideTime<=0)continue;
+   for(const victim of this.goats){
+    if(victim===rider||victim.dead||victim.finishTime!==null||victim.respawnedThisStep||victim.invulnerable>0)continue;
+    const hit=vehicleImpact(rider,victim.previousPosition||victim.body.position,victim.body.position,1.05,dt,true,victim.previousVelocity||victim.body.velocity);
+    if(hit)hits.push({rider,victim,time:hit.time});
+   }
+  }
+  hits.sort((a,b)=>a.time-b.time||a.rider.id-b.rider.id);
+  for(const {rider,victim} of hits)if(!rider.dead&&!victim.dead)this.kill(victim,'Скутер · '+(rider.character?.name||rider.name),rider.id);
  }
  updateLanding(g,dt){
   if(!g.touchingGround){g.airTime=(g.airTime||0)+dt;if(!g.trickActive&&g.rideTime<=0&&g.trickArmedUntil>=this.elapsed&&g.airTime>.08){g.trickActive=true;g.trickStart=this.elapsed;this.event('ramp',g);}if(g.trickActive)g.trickAirborne=true;return;}
@@ -389,7 +431,8 @@ export class RaceEngine {
     if(e.destroyed){e.life=0;continue;}
     e.previousPosition={...e.position};const before=-e.position.z,s=before-e.speed*dt,target=chooseHazardTarget(this,e,170);
     e.position.x+=center(s)-center(before);const lane=e.baseX+(target?clamp(target.x-e.baseX,-3,3):0);e.position.x+=clamp(center(s)+lane-e.position.x,-dt*.9,dt*.9);e.position.z=-s;e.position.y=sampleGroundHeight(e.position.x,s)+2.2;
-    for(const g of this.goats){if(g.dead||g.finishTime!==null||g.respawnedThisStep)continue;const contact=sweptSphereContact(g.previousPosition||g.body.position,g.body.position,e.previousPosition,e.position,e.radius+1.05);if(contact!==null)this.kill(g,e.sourceName||this.mountain.hazardNames.yeti+' №'+e.id);}
+    if(this.crushNpcWithVehicle(e,'yeti',e.previousPosition,e.position,e.radius,dt))continue;
+    for(const g of this.goats){if(g.dead||g.finishTime!==null||g.respawnedThisStep)continue;const contact=sweptSphereContact(g.previousPosition||g.body.position,g.body.position,e.previousPosition,e.position,e.radius+1.05);if(contact!==null)this.kill(g,e.sourceName||this.mountain.hazardNames.yeti);}
     if(s<this.goats[0].s-90)e.life=0;
    }else if(e.kind==='bomber'){
     const v=e.velocity,s=-e.position.z,heading=Math.atan(roadDerivative(s))+(e.headingOffset||0);v.x=-Math.sin(heading)*42;v.z=Math.cos(heading)*42;
