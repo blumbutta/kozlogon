@@ -18,7 +18,6 @@ export function updateBotEscape(engine,g,dt){
  ai.escapeCooldown=2.8;ai.progressTime=0;ai.progressS=g.s;ai.bombTarget=null;
  const heading=Math.atan((center(g.s+.2)-center(g.s-.2))/.4),mass=g.body.mass;
  g.body.applyImpulse(new CANNON.Vec3(Math.cos(heading)*side*mass*3.6,mass*7.8,Math.sin(heading)*side*mass*3.6));
- if(g.cd.spring===0)engine.ability(g,'spring');
  g.cd.jump=Math.max(g.cd.jump,1.5);engine.event('jump',g);
  return true;
 }

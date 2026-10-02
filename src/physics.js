@@ -89,7 +89,7 @@ export class RaceEngine {
   for(const e of this.entities)if(e.body)this.world.removeBody(e.body);this.entities=[];
   this.goats.forEach((g,i)=>{
    const spawn=spawnPosition(i);
-   Object.assign(g,{...spawn,speed:0,vx:0,jump:0,dead:0,invulnerable:1.5,spring:0,slow:0,bumpCd:0,finishTime:null,score:0,kills:0,rage:0,wildlifeHits:0,stuckTime:0,boostTime:0,boostRampId:null,boostSeen:new Set(),lastVocal:-10,previousPosition:null,respawnedThisStep:false,rideTime:0,stats:newStats(),lastDeath:null,cd:{jump:0,bomb:10,spring:0,trap:10},ai:{target:spawn.x,timer:0}});
+   Object.assign(g,{...spawn,speed:0,vx:0,jump:0,dead:0,invulnerable:1.5,slow:0,bumpCd:0,finishTime:null,score:0,kills:0,rage:0,wildlifeHits:0,stuckTime:0,boostTime:0,boostRampId:null,boostSeen:new Set(),lastVocal:-10,previousPosition:null,respawnedThisStep:false,rideTime:0,stats:newStats(),lastDeath:null,cd:{jump:0,bomb:10,trap:10},ai:{target:spawn.x,timer:0}});
    this.resetBody(g);
   });
   for(const h of this.hazards){h.hit=new Set();h.x=h.baseX??h.x;h.destroyed=false;h.fire=.7+this.random();h.warning=0;h.aim=null;h.targetId=null;h.targetUntil=0;h.burstRemaining=0;}
@@ -117,8 +117,7 @@ export class RaceEngine {
   if(this.phase!=='racing'||g.dead||g.finishTime!==null||g.cd[kind]>0)return false;
   if(['bomb','trap'].includes(kind)&&this.elapsed<10)return false;
   if(kind==='recover')return this.kill(g,'Самоуничтожение · R',-1,true);
-  if(kind==='jump'){if(!g.grounded)return false;g.body.applyImpulse(new CANNON.Vec3(0,7*(g.spring>0?12:8.2),-7*1.5));g.cd.jump=1.5;this.event('jump',g);}
-  else if(kind==='spring'){g.spring=3;g.cd.spring=10;this.event('spring',g);}
+  if(kind==='jump'){if(!g.grounded)return false;g.body.applyImpulse(new CANNON.Vec3(0,7*8.2,-7*1.5));g.cd.jump=1.5;this.event('jump',g);}
   else if(kind==='bomb'){g.cd.bomb=4.8;g.stats.bombs++;this.add({kind:'bomb',owner:g.id});this.event('bomb',g);}
   else if(kind==='trap'){g.cd.trap=7;g.stats.traps++;const s=Math.max(0,g.s-4),x=center(s)+g.x;this.add({kind:'trap',owner:g.id,position:{x,y:sampleGroundHeight(x,s)+.12,z:-s},life:18,radius:3.4,armedAt:.35,charges:3,hit:new Set(),snap:0});this.event('trap',g);}
   else return false;return true;
@@ -142,7 +141,7 @@ export class RaceEngine {
   return true;
  }
  respawn(g){
-  g.respawnedThisStep=true;g.s=Math.max(0,g.s-35);g.x=clamp(g.x,-9,9);g.invulnerable=3;g.spring=0;g.stuckTime=0;g.boostTime=0;g.boostRampId=null;
+  g.respawnedThisStep=true;g.s=Math.max(0,g.s-35);g.x=clamp(g.x,-9,9);g.invulnerable=3;g.stuckTime=0;g.boostTime=0;g.boostRampId=null;
   this.resetBody(g);g.body.position.y+=2;g.body.velocity.z=-5;this.event('respawn',g);
  }
  ranking(){return [...this.goats].sort((a,b)=>a.finishTime!==null&&b.finishTime!==null?a.finishTime-b.finishTime:a.finishTime!==null?-1:b.finishTime!==null?1:b.s-a.s);}
@@ -221,7 +220,7 @@ export class RaceEngine {
   for(const g of this.goats){
    g.respawnedThisStep=false;g.previousPosition=null;g.previousVelocity=null;
    for(const k of Object.keys(g.cd))g.cd[k]=Math.max(0,g.cd[k]-dt);
-   for(const k of ['invulnerable','spring','slow','bumpCd','boostTime'])g[k]=Math.max(0,(g[k]||0)-dt);
+   for(const k of ['invulnerable','slow','bumpCd','boostTime'])g[k]=Math.max(0,(g[k]||0)-dt);
    if(g.finishTime!==null)continue;
    if(g.rideTime>0){g.rideTime=Math.max(0,g.rideTime-dt);if(g.rideTime===0){g.body.velocity.scale(1/3,g.body.velocity);this.event('rideEnd',g);}}
    if(g.dead>0){g.dead=Math.max(0,g.dead-dt);if(g.dead===0)this.respawn(g);continue;}
@@ -230,7 +229,7 @@ export class RaceEngine {
     const control=botControls(this,g,dt);input=control.input;push=control.drive;
    }
    g.lastS=g.s;g.lastX=g.x;g.previousPosition=point(g.body.position);g.wasTouching=g.touchingGround;g.preImpactSpeed=Math.max(0,-g.body.velocity.y);
-   g.body.material.friction=this.weather.grip;g.body.material.restitution=g.rideTime>0?.08:g.spring>0?.88:.24;
+   g.body.material.friction=this.weather.grip;g.body.material.restitution=g.rideTime>0?.08:.24;
    this.applyBoosts(g,dt);
    this.steerAndDrive(g,dt,input,push);g.previousVelocity=point(g.body.velocity);
    if(Math.abs(g.x)>125||g.body.position.y<sampleGroundHeight(g.body.position.x,g.s)-12)this.kill(g,'Слетел с горы');
@@ -259,7 +258,7 @@ export class RaceEngine {
     const from=g.previousPosition,to=g.body.position,a={x:center(h.s)+h.x,y:sampleGroundHeight(center(h.s)+h.x,h.s)+(h.kind==='bear'?1.2:h.r*.7),z:-h.s};
     if(!from||sweptSphereContact(from,to,a,a,h.r+1.05)===null)continue;
     h.hit.add(g.id);
-    if(h.kind==='bear'){if(g.spring>0){g.body.applyImpulse(new CANNON.Vec3((g.x>h.x?1:-1)*7*9,7*3,0));this.event('bounce',g);}else this.kill(g,h.sourceName||this.mountain.hazardNames.bear+'!');}
+    if(h.kind==='bear')this.kill(g,h.sourceName||this.mountain.hazardNames.bear+'!');
     else if(g.invulnerable<=0)this.event('obstacle',{goat:g,kind:h.kind});
    }
    if(g.s>=LENGTH&&!g.dead){
@@ -271,7 +270,7 @@ export class RaceEngine {
   for(let i=0;i<this.goats.length;i++)for(let j=i+1;j<this.goats.length;j++){
    const a=this.goats[i],b=this.goats[j];
    if(a.dead||b.dead||a.invulnerable>0||b.invulnerable>0||a.bumpCd||b.bumpCd||a.finishTime!==null||b.finishTime!==null)continue;
-   if(distance(a.body.position,b.body.position)<2.2){const dir=a.x>=b.x?1:-1,power=a.spring>0||b.spring>0?11:4;a.body.applyImpulse(new CANNON.Vec3(dir*power*7,a.spring>0?14:0,0));b.body.applyImpulse(new CANNON.Vec3(-dir*power*7,b.spring>0?14:0,0));a.bumpCd=.4;b.bumpCd=.4;if(a.spring>0||b.spring>0)this.event('bounce',a.id===0?a:b);}
+   if(distance(a.body.position,b.body.position)<2.2){const dir=a.x>=b.x?1:-1,power=4;a.body.applyImpulse(new CANNON.Vec3(dir*power*7,0,0));b.body.applyImpulse(new CANNON.Vec3(-dir*power*7,0,0));a.bumpCd=.4;b.bumpCd=.4;}
   }
  }
  crushNpcWithVehicle(target,type,from,to,radius,dt){
@@ -413,7 +412,7 @@ export class RaceEngine {
     for(const g of this.goats){
      if(g.dead||g.invulnerable>0||g.finishTime!==null||g.respawnedThisStep)continue;
      const t=sweptSphereContact(previous,e.position,g.previousPosition||g.body.position,g.body.position,1.22);
-     if(t!==null){if(g.spring>0)this.event('bounce',g);else this.kill(g,'Выстрел · '+(e.sourceName||'Охотник'));e.life=0;break;}
+     if(t!==null){this.kill(g,'Выстрел · '+(e.sourceName||'Охотник'));e.life=0;break;}
     }
     if(e.position.y<=sampleGroundHeight(e.position.x,-e.position.z)+.12)e.life=0;
    }else if(e.kind==='trap'){

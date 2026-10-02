@@ -1,5 +1,5 @@
 export function suppressControlGestures(buttons){
- for(const button of buttons)for(const type of ['contextmenu','selectstart','dragstart']){
+ for(const button of buttons)for(const type of ['contextmenu','selectstart','dragstart','dblclick']){
   button.addEventListener(type,event=>event.preventDefault());
  }
 }
@@ -21,13 +21,19 @@ export function bindTouchControls(bindings,onChange,releaseTarget=globalThis){
  for(const binding of bindings){
   const button=binding.button;
   button.addEventListener('pointerdown',event=>{
-   if(event.button>0)return;
+   if(event.button>0||button.disabled||pointers.has(event.pointerId))return;
    event.preventDefault();
    pointers.set(event.pointerId,binding);
    try{button.setPointerCapture(event.pointerId);}catch{}
    update();
+   binding.onPress?.();
   });
   for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,event=>release(event,binding));
+  if(binding.onPress)button.addEventListener('click',event=>{
+   // Physical pointers already acted on contact; keep keyboard and assistive activation.
+   event.preventDefault();
+   if(!button.disabled&&event.detail===0&&!event.pointerType)binding.onPress();
+  });
  }
  for(const type of ['pointerup','pointercancel'])releaseTarget.addEventListener?.(type,event=>release(event));
  suppressControlGestures(bindings.map(binding=>binding.button));

@@ -46,7 +46,6 @@ export function botControls(engine,g,dt){
  const aim=ai.bombTarget,target=aim?.target;
  const targetAlive=target&&!target.destroyed&&!target.dead&&target.finishTime==null&&(aim.kind!=='yeti'||target.life>0);
  if(g.cd.bomb===0&&targetAlive&&engine.random()<dt*.3)engine.ability(g,'bomb');
- if(g.bumpCd>0&&g.cd.spring===0)engine.ability(g,'spring');
  if(g.id%4===0&&engine.random()<dt*.03)engine.ability(g,'trap');
  return {input:turn,drive:1};
 }

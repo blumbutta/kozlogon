@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {bindTouchControls,suppressControlGestures} from './touch-controls.js';
+import {bindTouchControls} from './touch-controls.js';
 import {createHazardAssets} from './hazard-assets.js';
 import {createCharacterAssets} from './character-assets.js';
 import {createShowAssets} from './show-assets.js';
@@ -154,7 +154,7 @@ for(const side of [-1,1]){const g=themeCreatures?.stands()||showAssets.stands(),
  // A stone foundation fills the gap under the level spectator platform.
  const floor=sampleGroundHeight(center(s)+x,s),depth=Math.max(1,base-minBase+1);box(g,0x818d90,0,-depth/2,0,28,depth,8.5);scene.add(g);grandstands.push(g);
 }
-const goats=rosterFor(selectedCharacterId).map((def,i)=>{const spawn=spawnPosition(i);return {id:i,characterId:def.id,character:def,name:i===0?'Ты · '+def.name:def.name,color:def.color,visual:characterModels.get(def.id),...spawn,speed:0,vx:0,jump:0,vy:0,spin:0,dead:0,invulnerable:0,spring:0,slow:0,finishTime:null,cd:{jump:0,bomb:0,spring:0,trap:0},ai:{target:spawn.x,timer:0}};});
+const goats=rosterFor(selectedCharacterId).map((def,i)=>{const spawn=spawnPosition(i);return {id:i,characterId:def.id,character:def,name:i===0?'Ты · '+def.name:def.name,color:def.color,visual:characterModels.get(def.id),...spawn,speed:0,vx:0,jump:0,vy:0,spin:0,dead:0,invulnerable:0,slow:0,finishTime:null,cd:{jump:0,bomb:0,trap:0},ai:{target:spawn.x,timer:0}};});
 
 let last=performance.now(),accumulator=0,attract=0,toastTimer=0,eventTimer=0,shake=0,uiTimer=0;
 const keys=new Set();let touchSteer=0,touchDrive=0;
@@ -241,7 +241,7 @@ function event(type,data){
  else if(type==='score'){if(data.goat.id===0){scorePopup(data.points,data.position);gameAudio.cue('score');}}
  else if(type==='finish'){sceneEffects.party.active=false;$('finish-banner').classList.add('hidden');finish();}
  else if(type==='go')gameAudio.cue('go');
- else if(type==='jump'||type==='ramp'||type==='spring'||type==='bomb'||type==='trap'){if(data.id===0)gameAudio.cue(type==='ramp'?'jump':type);}
+ else if(type==='jump'||type==='ramp'||type==='bomb'||type==='trap'){if(data.id===0)gameAudio.cue(type==='ramp'?'jump':type);}
  else if(type==='ride'){data.pickup.visual.visible=false;if(data.goat.id===0)gameAudio.cue('boost');}
  else if(type==='boost'){if(data.goat.id===0)gameAudio.cue('boost');}
  else if(type==='obstacle'){if(data.goat.id===0){shake=.12;gameAudio.cue('bounce');}}
@@ -287,20 +287,18 @@ function pause(value){if(engine.pause(value)){$('pause-panel').classList.toggle(
 $('start').onclick=start;$('restart').onclick=start;$('restart-pause').onclick=start;$('resume').onclick=()=>pause(false);$('pause').onclick=()=>pause(true);
 function returnToMenu(){engine.start();engine.phase='intro';resetInput();accumulator=0;$('hud').classList.add('hidden');$('finish').classList.add('hidden');$('pause-panel').classList.add('hidden');$('countdown').classList.add('hidden');$('intro').classList.remove('hidden');$('intro-footer').classList.remove('hidden');$('pause').classList.add('hidden');}
 $('choose-character').onclick=returnToMenu;$('choose-character-finish').onclick=returnToMenu;
-for(const kind of ['jump','bomb','spring','trap'])$(kind).onclick=()=>engine.ability(goats[0],kind);$('recover').onclick=()=>engine.ability(goats[0],'recover');
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}addEventListener('resize',resize);resize();
-addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','Space'].includes(e.code))e.preventDefault();if(e.code==='Escape'&&!e.repeat){pause(engine.phase!=='paused');return;}if(!e.repeat){const action={Space:'jump',KeyE:'bomb',ShiftLeft:'spring',ShiftRight:'spring',KeyQ:'trap',KeyR:'recover'}[e.code];if(action)engine.ability(goats[0],action);}keys.add(e.code);});
+addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','Space'].includes(e.code))e.preventDefault();if(e.code==='Escape'&&!e.repeat){pause(engine.phase!=='paused');return;}if(!e.repeat){const action={Space:'jump',KeyE:'bomb',KeyQ:'trap',KeyR:'recover'}[e.code];if(action)engine.ability(goats[0],action);}keys.add(e.code);});
 addEventListener('keyup',e=>keys.delete(e.code));
 addEventListener('blur',()=>{resetInput();if(['racing','countdown','celebrating'].includes(engine.phase))pause(true);});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){resetInput();pause(true);}});
 const driveButton=$('drive');
-const touchControls=bindTouchControls([{button:$('left'),steering:-1},{button:$('right'),steering:1},{button:driveButton,drive:1}],state=>{touchSteer=state.steering;touchDrive=state.drive;});
-suppressControlGestures(['jump','bomb','spring','trap','recover'].map($));
+const touchControls=bindTouchControls([{button:$('left'),steering:-1},{button:$('right'),steering:1},{button:driveButton,drive:1},...['jump','bomb','trap','recover'].map(kind=>({button:$(kind),onPress(){engine.ability(goats[0],kind);updateUI();}}))],state=>{touchSteer=state.steering;touchDrive=state.drive;});
 function resetInput(){keys.clear();touchControls.reset();}
 let countdownText='';
 const compactScore=new Intl.NumberFormat('ru-RU',{notation:'compact',maximumFractionDigits:1});
 function updateUI(){const p=goats[0],mobile=innerWidth<=600||globalThis.matchMedia?.('(pointer:coarse)').matches;const rank=engine.ranking();$('bonus-score').textContent=mobile?compactScore.format(p.score):p.score.toLocaleString('ru-RU');$('wildlife-count').textContent=p.kills;$('rage-fill').style.width=p.rage*100+'%';$('rage-value').textContent=mobile?'+'+Math.round(p.rage*18)+'% к скорости':Math.round(p.rage*100)+'% · +'+Math.round(p.rage*18)+'% к движению';$('recover').disabled=engine.phase!=='racing'||p.dead>0;$('player-status').textContent=p.rideTime>0?(mobile?'×3 · ':LOOK.vehicle+' ×3 · ')+p.rideTime.toFixed(1)+' с':p.invulnerable>0&&engine.phase==='racing'?'ЩИТ '+p.invulnerable.toFixed(1)+' с'+(mobile?'':' · от любых опасностей'):p.boostTime>0?'УСКОРЕНИЕ':'';driveButton.classList.toggle('pressed',touchDrive>0||keys.has('KeyW')||keys.has('ArrowUp'));$('rank').textContent=rank.findIndex(g=>g.id===0)+1;$('speed').textContent=Math.round(p.speed*3.6);$('time').textContent=formatTime(engine.elapsed);$('distance').textContent=Math.max(0,Math.round(LENGTH-p.s)).toLocaleString('ru-RU')+' м до низа';$('progress-fill').style.width=clamp(p.s/LENGTH*100,0,100)+'%';for(const g of goats)g.dot.style.left=clamp(g.s/LENGTH*100,0,100)+'%';const visibleRanks=rank.map((g,i)=>({g,i})).filter(({g,i})=>i<5||g.id===0);const leaderboard=visibleRanks.map(({g,i})=>`<li class="${g.id===0?'you':''}"><span class="racer-number">${i+1}</span><span class="racer-dot" style="background:#${g.color.toString(16)}"></span><span>${g.name}</span>${g.finishTime!==null?' ✓':''}</li>`).join('');if($('racers').innerHTML!==leaderboard)$('racers').innerHTML=leaderboard;
- for(const k of ['jump','bomb','spring','trap']){const cd=p.cd[k];$(k).disabled=engine.phase!=='racing'||p.dead>0||cd>0;$(k+'-cd').textContent=k==='spring'&&p.spring>0?p.spring.toFixed(1)+' СЕК':cd>0?cd.toFixed(1)+' СЕК':k==='jump'?'ГОТОВ':'ГОТОВА';$(k).classList.toggle('active-spring',k==='spring'&&p.spring>0);}
+ for(const k of ['jump','bomb','trap']){const cd=p.cd[k];$(k).disabled=engine.phase!=='racing'||p.dead>0||cd>0;$(k+'-cd').textContent=cd>0?cd.toFixed(1)+' СЕК':k==='jump'?'ГОТОВ':'ГОТОВА';}
  $('location').textContent=LOOK.sections[p.s<420?0:p.s<710?1:p.s<1250?2:3];
  if(engine.phase==='countdown'){const label=String(Math.max(1,Math.ceil(engine.counter-.2)));if(label!==countdownText){countdownText=label;tone(360,.1);}$('countdown').textContent=label;$('countdown').classList.remove('hidden');}else{$('countdown').classList.add('hidden');countdownText='';}}
 let renderSlow=0,renderQuality=1.35,frameAverage=1/60;
@@ -314,7 +312,7 @@ function render(dt){const p=goats[0];
   const riding=g.rideTime>0&&!g.dead,doingTrick=g.trickActive&&g.trickAirborne&&!g.dead&&!riding;g.visual.rig.visible=doingTrick;g.visual.roll.visible=!doingTrick&&!riding;g.visual.ride.visible=riding;
   if(doingTrick){showAssets.animateTrick(g.visual.rig,g.motionTime-(g.trickStart||0),g.character.variant);rigYaw.setFromAxisAngle(upAxis,g.wheelHeading||0);g.visual.rig.quaternion.premultiply(rigYaw);}
   if(riding){g.visual.ride.rotation.y=-Math.atan2(b.velocity.x,-b.velocity.z);g.visual.ride.rotation.z=-g.turnAngle*.25;rideAssets.animateRide(g.visual.ride,g.motionTime,{speed:g.speed,trick:g.jump>1});}
-  g.visual.shield.visible=g.spring>0||g.invulnerable>0&&(engine.phase==='racing'||engine.phase==='paused'&&engine.beforePause==='racing');g.visual.shield.material.color.set(g.spring>0?g.color:0xdbefff);g.visual.shield.rotation.y+=engine.phase==='paused'?0:dt*2;g.visual.marker.visible=false;g.label.visible=engine.phase!=='intro'&&(g.id===0||Math.abs(g.s-p.s)<45);g.label.position.y=riding?4.2:doingTrick?3.5:2.45;
+  g.visual.shield.visible=g.invulnerable>0&&(engine.phase==='racing'||engine.phase==='paused'&&engine.beforePause==='racing');g.visual.shield.material.color.set(0xdbefff);g.visual.shield.rotation.y+=engine.phase==='paused'?0:dt*2;g.visual.marker.visible=false;g.label.visible=engine.phase!=='intro'&&(g.id===0||Math.abs(g.s-p.s)<45);g.label.position.y=riding?4.2:doingTrick?3.5:2.45;
  }
  for(const pickup of snowmobiles){pickup.visual.visible=!pickup.consumed&&pickup.s>p.s-60&&pickup.s<p.s+350;}
  for(const prop of props)prop.g.visible=prop.s>p.s-80&&prop.s<p.s+440&&!prop.hazard?.destroyed;
@@ -349,6 +347,6 @@ const mc=document.modelContext;
 if(mc?.registerTool){const lifecycle=new AbortController();const defs=[
  {name:'get_goat_race_state',title:'Состояние спуска',description:'Read the current downhill race, weather, rankings and ability cooldowns.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:false},execute:()=>engine.state()},
  {name:'start_goat_race',title:'Начать новый спуск',description:'Start or restart the twenty-character downhill race, clearing the current run.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute:()=>{start();updateUI();return engine.state();}},
- {name:'use_goat_ability',title:'Использовать способность',description:'Use the player goat jump, spring, bomb or trap in the running race. Fails while unavailable.',inputSchema:{type:'object',properties:{ability:{type:'string',enum:['jump','spring','bomb','trap','recover']}},required:['ability'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute:input=>{if(!input||!['jump','spring','bomb','trap','recover'].includes(input.ability))throw new Error('Unknown ability');const used=engine.ability(goats[0],input.ability);updateUI();return {used,state:engine.state()};}},
+ {name:'use_goat_ability',title:'Использовать способность',description:'Use the player goat jump, bomb or trap in the running race. Fails while unavailable.',inputSchema:{type:'object',properties:{ability:{type:'string',enum:['jump','bomb','trap','recover']}},required:['ability'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute:input=>{if(!input||!['jump','bomb','trap','recover'].includes(input.ability))throw new Error('Unknown ability');const used=engine.ability(goats[0],input.ability);updateUI();return {used,state:engine.state()};}},
  {name:'pause_goat_race',title:'Пауза спуска',description:'Pause or resume the current goat race.',inputSchema:{type:'object',properties:{paused:{type:'boolean'}},required:['paused'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute:input=>{if(typeof input?.paused!=='boolean')throw new Error('paused must be boolean');pause(input.paused);return engine.state();}}
  ];for(const def of defs){try{Promise.resolve(mc.registerTool(def,{signal:lifecycle.signal})).catch(()=>{});}catch{}}addEventListener('pagehide',()=>lifecycle.abort(),{once:true});}

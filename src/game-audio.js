@@ -188,7 +188,7 @@ export function createGameAudio(){
   return true;
  }
  function cue(kind){
-  const p={jump:[420,.16,'triangle'],boost:[640,.25,'triangle'],spring:[570,.24,'triangle'],trap:[180,.18,'square'],bomb:[260,.14,'triangle'],countdown:[370,.12,'sine'],go:[700,.30,'triangle'],score:[900,.12,'sine'],death:[110,.35,'sawtooth'],bounce:[290,.13,'triangle'],lightning:[65,.70,'sawtooth']}[kind]||[480,.12,'sine'];
+  const p={jump:[420,.16,'triangle'],boost:[640,.25,'triangle'],trap:[180,.18,'square'],bomb:[260,.14,'triangle'],countdown:[370,.12,'sine'],go:[700,.30,'triangle'],score:[900,.12,'sine'],death:[110,.35,'sawtooth'],bounce:[290,.13,'triangle'],lightning:[65,.70,'sawtooth']}[kind]||[480,.12,'sine'];
   const v=voice('effect',p[1],1);if(!v)return false;oscillator(v,p[2],p[0],envelope(v,.07,p[1]),p[1],p[0]*.65);return true;
  }
  function update(dt,state={}){
