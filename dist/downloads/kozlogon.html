@@ -153,7 +153,7 @@
     height: 48px;
     --thumb-size: clamp(44px, 14vw, 54px);
     display: grid;
-    grid-template-columns: var(--thumb-size) var(--thumb-size) minmax(0, 1fr) var(--thumb-size) var(--thumb-size);
+    grid-template-columns: var(--thumb-size) var(--thumb-size) minmax(0, 1fr) var(--thumb-size);
     grid-template-rows: 1fr;
     gap: 6px;
     pointer-events: none;
@@ -161,7 +161,7 @@
   }
   .control-deck .abilities, .control-deck .touch-steer { display: contents; }
   .control-deck button { pointer-events: auto; }
-  .control-deck .touch-steer #left, .control-deck .touch-steer #right, .control-deck .touch-steer #drive, .control-deck #jump {
+  .control-deck .touch-steer #left, .control-deck .touch-steer #right, .control-deck .touch-steer #drive {
     position: static;
     display: flex;
     flex-direction: column;
@@ -179,12 +179,12 @@
   }
   .control-deck .touch-steer #left { grid-column: 1; font-size: 22px; }
   .control-deck .touch-steer #right { grid-column: 2; font-size: 22px; }
-  .control-deck .touch-steer #drive { grid-column: 5; }
-  .control-deck #jump { position: relative; grid-column: 4; padding-bottom: 11px; }
+  .control-deck .touch-steer #drive { grid-column: 4; }
+  .control-deck #jump { bottom: calc(100% + 12px); }
   .control-deck .touch-steer #drive span { font-size: 22px; line-height: 1; }
   .control-deck .touch-steer #drive small { font-size: 8px; letter-spacing: .4px; }
   .keyboard-hint { display: none; }
-  .control-deck .abilities button:not(#jump) {
+  .control-deck .abilities button {
     position: absolute;
     left: 0;
     width: 48px;
@@ -201,14 +201,14 @@
     background: #172b29cf;
     backdrop-filter: blur(8px);
   }
-  .control-deck #bomb { bottom: calc(100% + 112px); }
-  .control-deck #spring { bottom: calc(100% + 62px); }
-  .control-deck #trap { bottom: calc(100% + 12px); }
+  .control-deck #bomb { bottom: calc(100% + 162px); }
+  .control-deck #spring { bottom: calc(100% + 112px); }
+  .control-deck #trap { bottom: calc(100% + 62px); }
   .control-deck .abilities button:hover { transform: none; }
   .control-deck .abilities b { font-size: 9px; line-height: 1.15; }
   .control-deck .abilities small { display: none; }
   .control-deck .ability-icon { font-size: 17px; line-height: 1; width: 22px; }
-  .control-deck #jump .ability-icon { font-size: 18px; }
+  .control-deck #jump .ability-icon { font-size: 17px; }
   .control-deck #jump b { font-size: 9px; }
   .control-deck .cooldown { right: auto; bottom: 4px; font-size: 7px; letter-spacing: .3px; line-height: 1; }
   #recover {
@@ -262,9 +262,9 @@
 @media (pointer: coarse) and (max-height: 430px), (max-width: 600px) and (max-height: 430px) {
   .control-deck { height: 48px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   .control-deck .abilities button:not(#jump) { height: 44px; }
-  .control-deck #bomb { bottom: calc(100% + 112px); }
-  .control-deck #spring { bottom: calc(100% + 62px); }
-  .control-deck #trap { bottom: calc(100% + 12px); }
+  .control-deck #bomb { bottom: calc(100% + 162px); }
+  .control-deck #spring { bottom: calc(100% + 112px); }
+  .control-deck #trap { bottom: calc(100% + 62px); }
   #recover { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
   .progress { left: calc(84px + env(safe-area-inset-left, 0px)); right: calc(110px + env(safe-area-inset-right, 0px)); }
 }
