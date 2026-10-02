@@ -227,7 +227,7 @@ function event(type,data){
  else if(type==='weather'){const w=data,appearance=weatherLook(WORLD,w);$('weather-name').textContent=w.name;$('weather-effect').textContent=w.effect;$('weather-icon').textContent=w.icon;scene.background.setHex(appearance.color);scene.fog.color.copy(scene.background);scene.fog.far=appearance.fogFar;baseSunIntensity=appearance.sun;sun.intensity=baseSunIntensity;precipitation.visible=appearance.particles;rainLines.visible=appearance.streaks;rainLines.material.color.setHex(appearance.rain);precipitation.material.color.setHex(appearance.particle);precipGeo.setDrawRange(0,700);}
  else if(type==='spawn')entityVisual(data);
  else if(type==='remove'){const g=dynamic.get(data.id);if(g)removeEntity(g);dynamic.delete(data.id);const trail=bulletTrails.get(data.id);if(trail){trail.released=true;trail.age=0;}}
- else if(type==='death'){shatterVisual(data.goat.visual.root,data.position,0);if(data.goat.id===0){shake=.4;toast(data.reason,2.4);$('event-message').textContent=data.reason;eventTimer=2.4;gameAudio.cue('death');}}
+ else if(type==='death'){shatterVisual(data.goat.visual.root,data.position,0);if(data.goat.id===0){shake=.4;$('event-message').textContent=data.reason;eventTimer=2.4;gameAudio.cue('death');}}
  else if(type==='explosion')animatedExplosion(data);
  else if(type==='lightning'){showLightning(data);gameAudio.cue('lightning');}
  else if(type==='clusterSplit'){gameAudio.cluster(data.position);animatedExplosion(data);}
