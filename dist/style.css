@@ -45,113 +45,225 @@
 
 .touch-steer #drive .keyboard-hint { font-size: inherit; line-height: inherit; }
 
-/* Two thumbs: steering together on the left, acceleration on the right. */
+/* Desktop keeps the existing separated HUD and controls. */
+.race-summary, .control-deck { display: contents; }
+.recover-icon { display: none; }
+
+/* A clear view of the slope: compact stats, side abilities, one thumb-control row. */
 @media (pointer: coarse), (max-width: 600px) {
   header {
-    top: calc(16px + env(safe-area-inset-top, 0px));
-    left: calc(18px + env(safe-area-inset-left, 0px));
-    right: calc(18px + env(safe-area-inset-right, 0px));
+    top: calc(8px + env(safe-area-inset-top, 0px));
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
   }
-  .touch-steer {
+  .brand { display: none; }
+  .brand-mark { font-size: 27px; }
+  .brand small, .header-right > span { display: none; }
+  .header-right { gap: 6px; margin-left: auto; }
+  .icon-button { width: 44px; height: 44px; border-radius: 11px; font-size: 23px; }
+  .weather, .leaderboard { display: none; }
+
+  .race-summary {
+    position: absolute;
+    top: calc(8px + env(safe-area-inset-top, 0px));
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: calc(110px + env(safe-area-inset-right, 0px));
+    max-width: 430px;
+    min-height: 44px;
     display: flex;
-    justify-content: flex-start;
-    gap: 10px;
-    left: calc(16px + env(safe-area-inset-left, 0px));
-    right: calc(16px + env(safe-area-inset-right, 0px));
-    bottom: calc(98px + env(safe-area-inset-bottom, 0px));
-    z-index: 6;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px;
+    border: 1px solid #ffffff29;
+    border-radius: 12px;
+    background: #172b29c9;
+    backdrop-filter: blur(8px);
+    pointer-events: none;
   }
-  .touch-steer #left, .touch-steer #right {
-    display: block;
-    flex: 0 0 72px;
-    width: 72px;
-    height: 72px;
-    font-size: 32px;
+  .race-summary .race-stats {
+    position: static;
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    border-radius: 0;
+    backdrop-filter: none;
   }
-  .touch-steer #left { order: 0; }
-  .touch-steer #right { order: 1; }
-  .touch-steer #drive {
-    order: 2;
-    flex: 0 0 92px;
-    width: 92px;
-    height: 72px;
-    margin-left: auto;
-  }
-  .touch-steer #drive small { font-size: 10px; }
-  .keyboard-hint { display: none; }
-  .abilities {
-    left: calc(16px + env(safe-area-inset-left, 0px));
-    right: calc(16px + env(safe-area-inset-right, 0px));
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    transform: none;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-    max-width: 376px;
-    margin-inline: auto;
-    z-index: 6;
-  }
-  .abilities button {
+  .race-summary .place { gap: 3px; }
+  .race-summary .place b { font-size: 20px; }
+  .race-summary .place span { font-size: 8px; }
+  .race-summary .place small { font-size: 6px; letter-spacing: .5px; margin-top: 2px; }
+  .race-summary .stat { padding-left: 6px; }
+  .race-summary .stat b { font-size: 16px; }
+  .race-summary .stat span { font-size: 6px; letter-spacing: .5px; margin-top: 2px; }
+  .race-summary .time { display: none; }
+  .race-summary .bonus-panel {
+    position: static;
+    flex: 1 1 auto;
     min-width: 0;
-    min-height: 72px;
-    padding: 9px 3px 20px;
-    justify-content: center;
+    width: auto;
+    display: flex;
     flex-direction: column;
-    gap: 3px;
-    border-radius: 14px;
+    align-items: flex-end;
+    gap: 2px;
+    padding: 0;
+    border: 0;
+    background: none;
+    border-radius: 0;
+    backdrop-filter: none;
+    white-space: nowrap;
   }
-  #recover {
+  .race-summary .bonus-title, .race-summary .bonus-kills, .race-summary .rage-track { display: none; }
+  .race-summary .bonus-panel b { font-size: 14px; line-height: 1; margin: 0; }
+  .race-summary .bonus-panel b::after { content: ' ОЧКИ'; font-size: 6px; font-weight: 600; color: #d7e3d6aa; }
+  .race-summary .rage-label { font-size: 0; margin: 0; letter-spacing: 0; }
+  .race-summary .rage-label span { font-size: 9px; line-height: 1.2; margin: 0; color: #ffc9a9; }
+
+  .progress {
+    top: calc(60px + env(safe-area-inset-top, 0px));
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    width: auto;
+    transform: none;
+  }
+  .progress-label { justify-content: center; font-size: 8px; letter-spacing: .6px; margin-bottom: 5px; }
+  .progress-label span:first-child, .progress-label span:last-child { display: none; }
+  .progress-line { height: 3px; }
+  .progress-dot { width: 5px; height: 5px; top: -1px; }
+  .progress-dot:first-of-type { width: 8px; height: 8px; top: -2.5px; }
+  #player-status {
     left: auto;
-    right: calc(16px + env(safe-area-inset-right, 0px));
-    top: auto;
-    bottom: calc(184px + env(safe-area-inset-bottom, 0px));
-    min-height: 44px;
-    padding: 10px 12px;
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    top: calc(86px + env(safe-area-inset-top, 0px));
+    max-width: calc(100% - 94px);
+    padding: 4px 7px;
+    font-size: 10px;
+    text-align: right;
+  }
+
+  .control-deck {
+    position: absolute;
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    height: 48px;
+    --thumb-size: clamp(44px, 14vw, 54px);
+    display: grid;
+    grid-template-columns: var(--thumb-size) var(--thumb-size) minmax(0, 1fr) var(--thumb-size) var(--thumb-size);
+    grid-template-rows: 1fr;
+    gap: 6px;
+    pointer-events: none;
     z-index: 6;
   }
-  .abilities button:hover { transform: none; }
-  .abilities b { font-size: 11px; }
-  .abilities small { display: none; }
-  .ability-icon { font-size: 25px; line-height: 1; }
-  .cooldown { right: auto; bottom: 7px; font-size: 7px; }
-}
-
-/* Wide landscape phones have enough room for one bottom control row. */
-@media (pointer: coarse) and (orientation: landscape) and (min-width: 640px) {
-  .touch-steer { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
-  .touch-steer #left, .touch-steer #right { flex-basis: 64px; width: 64px; height: 68px; }
-  .touch-steer #drive { flex-basis: 80px; width: 80px; height: 68px; }
-  .abilities {
-    left: calc(50% + 28px);
-    right: auto;
-    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-    width: 280px;
-    transform: translateX(-50%);
+  .control-deck .abilities, .control-deck .touch-steer { display: contents; }
+  .control-deck button { pointer-events: auto; }
+  .control-deck .touch-steer #left, .control-deck .touch-steer #right, .control-deck .touch-steer #drive, .control-deck #jump {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
     margin: 0;
+    padding: 3px 2px;
+    border-radius: 10px;
+    gap: 1px;
+    grid-row: 1;
   }
-  .abilities button { min-height: 68px; }
+  .control-deck .touch-steer #left { grid-column: 1; font-size: 22px; }
+  .control-deck .touch-steer #right { grid-column: 2; font-size: 22px; }
+  .control-deck .touch-steer #drive { grid-column: 5; }
+  .control-deck #jump { position: relative; grid-column: 4; padding-bottom: 11px; }
+  .control-deck .touch-steer #drive span { font-size: 22px; line-height: 1; }
+  .control-deck .touch-steer #drive small { font-size: 8px; letter-spacing: .4px; }
+  .keyboard-hint { display: none; }
+  .control-deck .abilities button:not(#jump) {
+    position: absolute;
+    left: 0;
+    width: 48px;
+    height: 44px;
+    min-width: 0;
+    min-height: 0;
+    padding: 3px 1px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1px;
+    border-radius: 11px;
+    background: #172b29cf;
+    backdrop-filter: blur(8px);
+  }
+  .control-deck #bomb { bottom: calc(100% + 112px); }
+  .control-deck #spring { bottom: calc(100% + 62px); }
+  .control-deck #trap { bottom: calc(100% + 12px); }
+  .control-deck .abilities button:hover { transform: none; }
+  .control-deck .abilities b { font-size: 9px; line-height: 1.15; }
+  .control-deck .abilities small { display: none; }
+  .control-deck .ability-icon { font-size: 17px; line-height: 1; width: 22px; }
+  .control-deck #jump .ability-icon { font-size: 18px; }
+  .control-deck #jump b { font-size: 9px; }
+  .control-deck .cooldown { right: auto; bottom: 4px; font-size: 7px; letter-spacing: .3px; line-height: 1; }
   #recover {
     left: auto;
-    right: calc(16px + env(safe-area-inset-right, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
     top: auto;
-    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    width: 44px;
+    height: 44px;
     min-height: 44px;
-    padding: 10px 12px;
+    padding: 0;
+    font-size: 10px;
+    border-radius: 10px;
+    background: #182a28aa;
     z-index: 6;
   }
-}
-
-@media (max-width: 600px) {
-  .race-stats, .weather { top: calc(76px + env(safe-area-inset-top, 0px)); }
-  .progress { top: calc(142px + env(safe-area-inset-top, 0px)); }
-  #player-status { top: calc(166px + env(safe-area-inset-top, 0px)); }
-  .leaderboard { top: calc(172px + env(safe-area-inset-top, 0px)); }
-  .bonus-panel { top: calc(196px + env(safe-area-inset-top, 0px)); }
+  .control-deck .touch-steer button,
+  .control-deck .touch-steer #drive,
+  .control-deck .abilities button,
+  .control-deck .abilities button:not(#jump),
+  #recover, .icon-button {
+    background: rgba(15, 38, 34, .18);
+    backdrop-filter: none;
+    border-color: #ffffff66;
+    box-shadow: none;
+    text-shadow: 0 1px 3px #000c;
+  }
+  .control-deck .touch-steer button.pressed,
+  .control-deck .touch-steer #drive.pressed,
+  .control-deck .abilities button:active,
+  .control-deck .abilities button:not(#jump):active,
+  #recover:active {
+    background: rgba(50, 75, 39, .4);
+    border-color: var(--lime);
+    box-shadow: none;
+  }
+  #recover .recover-label { display: none; }
+  #recover .recover-icon { display: block; font-size: 23px; line-height: 1; }
+  #toast { top: calc(112px + env(safe-area-inset-top, 0px)); font-size: 11px; padding: 7px 11px; }
+  #event-message { font-size: 21px; }
+  .score-popup { font-size: 23px; }
   .overlay {
-    padding-top: calc(74px + env(safe-area-inset-top, 0px));
-    padding-bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+    padding-top: calc(66px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(36px + env(safe-area-inset-bottom, 0px));
     padding-left: max(15px, env(safe-area-inset-left, 0px));
     padding-right: max(15px, env(safe-area-inset-right, 0px));
   }
-  footer { bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+  footer { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+}
+
+@media (pointer: coarse) and (max-height: 430px), (max-width: 600px) and (max-height: 430px) {
+  .control-deck { height: 48px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .control-deck .abilities button:not(#jump) { height: 44px; }
+  .control-deck #bomb { bottom: calc(100% + 112px); }
+  .control-deck #spring { bottom: calc(100% + 62px); }
+  .control-deck #trap { bottom: calc(100% + 12px); }
+  #recover { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+  .progress { left: calc(84px + env(safe-area-inset-left, 0px)); right: calc(110px + env(safe-area-inset-right, 0px)); }
 }
