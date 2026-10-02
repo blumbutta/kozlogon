@@ -25,3 +25,133 @@
 .intro-card{max-height:calc(100dvh - 140px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#799064 #ffffff0b}.mountain-picker{margin-top:19px}.mountain-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:12px}.mountain-heading>span{font-size:11px;color:#b4c7b7;letter-spacing:1px}.mountain-heading b{font-size:13px;color:var(--lime)}#mountain-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}#mountain-options button{--mountain-accent:#d6fc64;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:6px;padding:12px 11px 11px;min-width:0;border:1px solid #ffffff25;border-radius:11px;background:linear-gradient(145deg,#31463b,#1d332e);transition:border-color .15s,background .15s,transform .15s}#mountain-options button[data-mountain=hell]{--mountain-accent:#ffac65;background:linear-gradient(145deg,#522d2c,#302c2c)}#mountain-options button[data-mountain=moon]{--mountain-accent:#bda9ff;background:linear-gradient(145deg,#353852,#252f39)}#mountain-options button[aria-pressed=true]{border-color:var(--mountain-accent);box-shadow:inset 0 0 0 1px var(--mountain-accent)}#mountain-options button:hover{border-color:var(--mountain-accent);transform:translateY(-2px)}.mountain-icon{font-size:25px;color:var(--mountain-accent);line-height:1;height:28px;display:block}#mountain-options b{font-size:12px;line-height:1.25;letter-spacing:-.2px;color:#f1f4e9}#mountain-options small{font-size:10px;line-height:1.45;color:#cad5cebb;max-width:100%}.character-picker{margin-top:18px}
 @media(max-width:600px){.intro-card{max-height:100%;padding:20px}.mountain-picker{margin-top:15px}.mountain-heading>span{font-size:10px}.mountain-heading b{font-size:12px}#mountain-options{gap:5px;margin-top:8px}#mountain-options button{padding:10px 8px;gap:5px}.mountain-icon{font-size:23px;height:24px}#mountain-options b{font-size:11px}#mountain-options small{font-size:9px;line-height:1.4}.character-picker{margin-top:16px}}
 @media(max-height:650px) and (min-width:601px){.intro-card{max-height:100%}.mountain-picker{margin-top:13px}#mountain-options button{padding:9px 10px;gap:4px}.mountain-icon{height:22px;font-size:22px}.character-picker{margin-top:13px}}
+
+
+/* Keep held game controls clear of Safari selection and system gestures. */
+#hud button, #hud button *, #pause, #pause *, #sound, #sound * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.touch-steer button, .touch-steer button *, .abilities button, .abilities button *, #recover {
+  touch-action: none;
+}
+.touch-steer button.pressed {
+  background: #435c2e;
+  border-color: var(--lime);
+  box-shadow: 0 0 20px #d6fc6444;
+}
+
+.touch-steer #drive .keyboard-hint { font-size: inherit; line-height: inherit; }
+
+/* Two thumbs: steering together on the left, acceleration on the right. */
+@media (pointer: coarse), (max-width: 600px) {
+  header {
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    left: calc(18px + env(safe-area-inset-left, 0px));
+    right: calc(18px + env(safe-area-inset-right, 0px));
+  }
+  .touch-steer {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    left: calc(16px + env(safe-area-inset-left, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    bottom: calc(98px + env(safe-area-inset-bottom, 0px));
+    z-index: 6;
+  }
+  .touch-steer #left, .touch-steer #right {
+    display: block;
+    flex: 0 0 72px;
+    width: 72px;
+    height: 72px;
+    font-size: 32px;
+  }
+  .touch-steer #left { order: 0; }
+  .touch-steer #right { order: 1; }
+  .touch-steer #drive {
+    order: 2;
+    flex: 0 0 92px;
+    width: 92px;
+    height: 72px;
+    margin-left: auto;
+  }
+  .touch-steer #drive small { font-size: 10px; }
+  .keyboard-hint { display: none; }
+  .abilities {
+    left: calc(16px + env(safe-area-inset-left, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    transform: none;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    max-width: 376px;
+    margin-inline: auto;
+    z-index: 6;
+  }
+  .abilities button {
+    min-width: 0;
+    min-height: 72px;
+    padding: 9px 3px 20px;
+    justify-content: center;
+    flex-direction: column;
+    gap: 3px;
+    border-radius: 14px;
+  }
+  #recover {
+    left: auto;
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    top: auto;
+    bottom: calc(184px + env(safe-area-inset-bottom, 0px));
+    min-height: 44px;
+    padding: 10px 12px;
+    z-index: 6;
+  }
+  .abilities button:hover { transform: none; }
+  .abilities b { font-size: 11px; }
+  .abilities small { display: none; }
+  .ability-icon { font-size: 25px; line-height: 1; }
+  .cooldown { right: auto; bottom: 7px; font-size: 7px; }
+}
+
+/* Wide landscape phones have enough room for one bottom control row. */
+@media (pointer: coarse) and (orientation: landscape) and (min-width: 640px) {
+  .touch-steer { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
+  .touch-steer #left, .touch-steer #right { flex-basis: 64px; width: 64px; height: 68px; }
+  .touch-steer #drive { flex-basis: 80px; width: 80px; height: 68px; }
+  .abilities {
+    left: calc(50% + 28px);
+    right: auto;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    width: 280px;
+    transform: translateX(-50%);
+    margin: 0;
+  }
+  .abilities button { min-height: 68px; }
+  #recover {
+    left: auto;
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    top: auto;
+    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    min-height: 44px;
+    padding: 10px 12px;
+    z-index: 6;
+  }
+}
+
+@media (max-width: 600px) {
+  .race-stats, .weather { top: calc(76px + env(safe-area-inset-top, 0px)); }
+  .progress { top: calc(142px + env(safe-area-inset-top, 0px)); }
+  #player-status { top: calc(166px + env(safe-area-inset-top, 0px)); }
+  .leaderboard { top: calc(172px + env(safe-area-inset-top, 0px)); }
+  .bonus-panel { top: calc(196px + env(safe-area-inset-top, 0px)); }
+  .overlay {
+    padding-top: calc(74px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(15px, env(safe-area-inset-left, 0px));
+    padding-right: max(15px, env(safe-area-inset-right, 0px));
+  }
+  footer { bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+}

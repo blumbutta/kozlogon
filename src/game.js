@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {bindTouchControls,suppressControlGestures} from './touch-controls.js';
 import {createHazardAssets} from './hazard-assets.js';
 import {createCharacterAssets} from './character-assets.js';
 import {createShowAssets} from './show-assets.js';
@@ -281,21 +282,21 @@ $('intro-journey').textContent=LOOK.journey;
 function selectMountain(id){const world=resolveWorld(id);if(engine.phase!=='intro'||world.id===WORLD.id)return false;const url=new URL(location.href);url.searchParams.set('mountain',world.id);url.searchParams.set('character',selectedCharacterId);url.searchParams.set('sound',soundPreference?'on':'off');location.assign(url.href);return true;}
 makeCharacterThumbnails();selectCharacter(selectedCharacterId);
 function formatTime(t){return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');}
-function start(){if(soundPreference!==false)setSound(true);keys.clear();touchSteer=0;touchDrive=0;accumulator=0;engine.start();$('intro').classList.add('hidden');$('intro-footer').classList.add('hidden');$('hud').classList.remove('hidden');$('finish').classList.add('hidden');$('pause-panel').classList.add('hidden');$('pause').classList.remove('hidden');$('countdown').classList.remove('hidden');camera.position.copy(worldPosition(goats[0].x,-12,9));tone(330,.1);}
-function pause(value){if(engine.pause(value)){$('pause-panel').classList.toggle('hidden',!value);keys.clear();touchSteer=0;touchDrive=0;accumulator=0;}}
+function start(){if(soundPreference!==false)setSound(true);resetInput();accumulator=0;engine.start();$('intro').classList.add('hidden');$('intro-footer').classList.add('hidden');$('hud').classList.remove('hidden');$('finish').classList.add('hidden');$('pause-panel').classList.add('hidden');$('pause').classList.remove('hidden');$('countdown').classList.remove('hidden');camera.position.copy(worldPosition(goats[0].x,-12,9));tone(330,.1);}
+function pause(value){if(engine.pause(value)){$('pause-panel').classList.toggle('hidden',!value);resetInput();accumulator=0;}}
 $('start').onclick=start;$('restart').onclick=start;$('restart-pause').onclick=start;$('resume').onclick=()=>pause(false);$('pause').onclick=()=>pause(true);
-function returnToMenu(){engine.start();engine.phase='intro';keys.clear();touchSteer=0;touchDrive=0;accumulator=0;$('hud').classList.add('hidden');$('finish').classList.add('hidden');$('pause-panel').classList.add('hidden');$('countdown').classList.add('hidden');$('intro').classList.remove('hidden');$('intro-footer').classList.remove('hidden');$('pause').classList.add('hidden');}
+function returnToMenu(){engine.start();engine.phase='intro';resetInput();accumulator=0;$('hud').classList.add('hidden');$('finish').classList.add('hidden');$('pause-panel').classList.add('hidden');$('countdown').classList.add('hidden');$('intro').classList.remove('hidden');$('intro-footer').classList.remove('hidden');$('pause').classList.add('hidden');}
 $('choose-character').onclick=returnToMenu;$('choose-character-finish').onclick=returnToMenu;
 for(const kind of ['jump','bomb','spring','trap'])$(kind).onclick=()=>engine.ability(goats[0],kind);$('recover').onclick=()=>engine.ability(goats[0],'recover');
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}addEventListener('resize',resize);resize();
 addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','Space'].includes(e.code))e.preventDefault();if(e.code==='Escape'&&!e.repeat){pause(engine.phase!=='paused');return;}if(!e.repeat){const action={Space:'jump',KeyE:'bomb',ShiftLeft:'spring',ShiftRight:'spring',KeyQ:'trap',KeyR:'recover'}[e.code];if(action)engine.ability(goats[0],action);}keys.add(e.code);});
 addEventListener('keyup',e=>keys.delete(e.code));
-addEventListener('blur',()=>{keys.clear();touchSteer=0;touchDrive=0;if(['racing','countdown','celebrating'].includes(engine.phase))pause(true);});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){keys.clear();touchSteer=0;touchDrive=0;pause(true);}});
-for(const [id,direction] of [['left',-1],['right',1]]){const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);touchSteer=direction;});for(const type of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(type,()=>touchSteer=0);}
+addEventListener('blur',()=>{resetInput();if(['racing','countdown','celebrating'].includes(engine.phase))pause(true);});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){resetInput();pause(true);}});
 const driveButton=$('drive');
-driveButton.addEventListener('pointerdown',e=>{e.preventDefault();driveButton.setPointerCapture(e.pointerId);touchDrive=1;});
-for(const type of ['pointerup','pointercancel','lostpointercapture'])driveButton.addEventListener(type,()=>touchDrive=0);
+const touchControls=bindTouchControls([{button:$('left'),steering:-1},{button:$('right'),steering:1},{button:driveButton,drive:1}],state=>{touchSteer=state.steering;touchDrive=state.drive;});
+suppressControlGestures(['jump','bomb','spring','trap','recover'].map($));
+function resetInput(){keys.clear();touchControls.reset();}
 let countdownText='';
 function updateUI(){const p=goats[0];const rank=engine.ranking();$('bonus-score').textContent=p.score.toLocaleString('ru-RU');$('wildlife-count').textContent=p.kills;$('rage-fill').style.width=p.rage*100+'%';$('rage-value').textContent=Math.round(p.rage*100)+'% · +'+Math.round(p.rage*18)+'% к движению';$('recover').disabled=engine.phase!=='racing'||p.dead>0;$('player-status').textContent=p.rideTime>0?LOOK.vehicle+' ×3 · '+p.rideTime.toFixed(1)+' с':p.invulnerable>0&&engine.phase==='racing'?'ЩИТ '+p.invulnerable.toFixed(1)+' с · от любых опасностей':p.boostTime>0?'УСКОРЕНИЕ':'';driveButton.classList.toggle('pressed',touchDrive>0||keys.has('KeyW')||keys.has('ArrowUp'));$('rank').textContent=rank.findIndex(g=>g.id===0)+1;$('speed').textContent=Math.round(p.speed*3.6);$('time').textContent=formatTime(engine.elapsed);$('distance').textContent=Math.max(0,Math.round(LENGTH-p.s)).toLocaleString('ru-RU')+' м до низа';$('progress-fill').style.width=clamp(p.s/LENGTH*100,0,100)+'%';for(const g of goats)g.dot.style.left=clamp(g.s/LENGTH*100,0,100)+'%';const visibleRanks=rank.map((g,i)=>({g,i})).filter(({g,i})=>i<5||g.id===0);const leaderboard=visibleRanks.map(({g,i})=>`<li class="${g.id===0?'you':''}"><span class="racer-number">${i+1}</span><span class="racer-dot" style="background:#${g.color.toString(16)}"></span><span>${g.name}</span>${g.finishTime!==null?' ✓':''}</li>`).join('');if($('racers').innerHTML!==leaderboard)$('racers').innerHTML=leaderboard;
  for(const k of ['jump','bomb','spring','trap']){const cd=p.cd[k];$(k).disabled=engine.phase!=='racing'||p.dead>0||cd>0;$(k+'-cd').textContent=k==='spring'&&p.spring>0?p.spring.toFixed(1)+' СЕК':cd>0?cd.toFixed(1)+' СЕК':k==='jump'?'ГОТОВ':'ГОТОВА';$(k).classList.toggle('active-spring',k==='spring'&&p.spring>0);}
