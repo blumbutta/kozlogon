@@ -14,6 +14,9 @@ importers:
       three:
         specifier: ^0.180.0
         version: 0.180.0
+      ws:
+        specifier: 8.22.0
+        version: 8.22.0
     devDependencies:
       esbuild:
         specifier: ^0.25.10
@@ -188,6 +191,18 @@ packages:
   three@0.180.0:
     resolution: {integrity: sha512-o+qycAMZrh+TsE01GqWUxUIKR1AL0S8pq7zDkYOQw8GqfX8b8VoCKYUoHbhiX5j+7hr8XsuHDVU6+gkQJQKg9w==}
 
+  ws@8.22.0:
+    resolution: {integrity: sha512-Ydggc987+RO0AnWtZ/7Wq9FtNvcrL1b/RO0ud9mWjUPgDrsAAwQSF51sm2hm1XofbU/4jkpGEsLFsZZxU+1DOg==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
 snapshots:
 
   '@esbuild/aix-ppc64@0.25.12':
@@ -300,3 +315,5 @@ snapshots:
       '@esbuild/win32-x64': 0.25.12
 
   three@0.180.0: {}
+
+  ws@8.22.0: {}

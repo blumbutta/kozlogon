@@ -17,3 +17,15 @@ export function resolveWorld(id){return WORLDS.find(world=>world.id===id)||WORLD
 let activeWorld=resolveWorld(typeof location!=='undefined'?new URLSearchParams(location.search).get('mountain'):'alps');
 export function getActiveWorld(){return activeWorld;}
 export function setActiveWorld(id){activeWorld=resolveWorld(id);return activeWorld;}
+
+// Terrain helpers use the current world. Server rooms enter this scope only for
+// synchronous simulation work, then restore it before another room can run.
+export function withWorld(id,callback){
+ const previous=activeWorld;
+ activeWorld=resolveWorld(typeof id==='object'?id.id:id);
+ try{
+  const result=callback(activeWorld);
+  if(result&&typeof result.then==='function')throw new TypeError('withWorld callbacks must be synchronous');
+  return result;
+ }finally{activeWorld=previous;}
+}
