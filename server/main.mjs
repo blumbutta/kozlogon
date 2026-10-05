@@ -3,7 +3,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { RaceEngine } from '../src/physics.js';
 import { createNetworkWorld } from '../src/network-world.js';
 import { withWorld } from '../src/worlds.js';
-import { RoomManager, SERVER_PHYSICS_HZ } from './rooms.mjs';
+import { RoomManager, SERVER_PHYSICS_HZ, DEFAULT_MAX_ACTIVE_RACES } from './rooms.mjs';
 
 const port=Number(process.env.PORT||10000);
 if(!Number.isInteger(port)||port<1||port>65535)throw new Error('PORT must be an integer between 1 and 65535');
@@ -11,7 +11,7 @@ const boundedEnv=(name,fallback,max)=>{const value=Number(process.env[name]||fal
 const allowedOrigins=new Set((process.env.ALLOWED_ORIGINS||'https://blumbutta.github.io').split(',').map(value=>value.trim()).filter(Boolean));
 const originAllowed=origin=>!origin||allowedOrigins.has(origin)||/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 const manager=new RoomManager({
- maxRooms:boundedEnv('MAX_ROOMS',4,32),maxActiveRaces:boundedEnv('MAX_ACTIVE_RACES',1,8),withWorld,
+ maxRooms:boundedEnv('MAX_ROOMS',4,32),maxActiveRaces:boundedEnv('MAX_ACTIVE_RACES',DEFAULT_MAX_ACTIVE_RACES,8),withWorld,
  engineFactory(worldId,racers,event){
   const world=createNetworkWorld(worldId);
   for(const racer of racers)Object.assign(world.goats[racer.id],racer);
@@ -25,7 +25,7 @@ const server=createServer((request,response)=>{
  if(!['GET','HEAD'].includes(request.method)){response.setHeader('Allow','GET, HEAD');send(405,{error:'Method not allowed'});return;}
  const path=request.url.split('?')[0];
  if(path==='/health')send(200,{ok:true});
- else if(path==='/')send(200,{service:'kozlogon-server',status:'online',multiplayerReady:true,gameUrl:'https://blumbutta.github.io/kozlogon/'});
+ else if(path==='/')send(200,{service:'kozlogon-server',status:'online',multiplayerReady:true,maxActiveRaces:manager.maxActiveRaces,maxRooms:manager.maxRooms,physicsHz:SERVER_PHYSICS_HZ,gameUrl:'https://blumbutta.github.io/kozlogon/'});
  else send(404,{error:'Not found'});
 });
 const sockets=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});

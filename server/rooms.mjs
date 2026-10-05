@@ -8,6 +8,7 @@ import { serializeEvent, serializeState } from '../src/network-state.js';
 const token=()=>randomBytes(18).toString('base64url');
 const MAX_PLAYERS=20, RECONNECT_MS=20_000, INPUT_STALE_MS=30_000;
 export const SERVER_PHYSICS_HZ=60, SNAPSHOT_HZ=15;
+export const DEFAULT_MAX_ACTIVE_RACES=2;
 const abilityKinds=new Set(['jump','bomb','trap','recover']);
 const clamp=(number,min,max)=>Math.max(min,Math.min(max,number));
 export function normalizeNickname(value,fallback='Рогач'){
@@ -161,7 +162,7 @@ export class RaceRoom {
 }
 
 export class RoomManager {
- constructor({engineFactory,withWorld=(_world,callback)=>callback(),now=()=>Date.now(),maxRooms=4,maxActiveRaces=1}={}){
+ constructor({engineFactory,withWorld=(_world,callback)=>callback(),now=()=>Date.now(),maxRooms=4,maxActiveRaces=DEFAULT_MAX_ACTIVE_RACES}={}){
   this.rooms=new Map();this.engineFactory=engineFactory;this.withWorld=withWorld;this.now=now;this.maxRooms=maxRooms;this.maxActiveRaces=maxActiveRaces;this.lastTick=now();
  }
  activeRaces(){return [...this.rooms.values()].filter(room=>['countdown','racing'].includes(room.phase)).length;}
