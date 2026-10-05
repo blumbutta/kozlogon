@@ -139,7 +139,7 @@ try {
   const response = await fetch(new URL('/', serverUrl), { signal: AbortSignal.timeout(15_000) });
   const health = await response.json();
   if (!health.multiplayerReady) throw new Error('deployment_not_ready');
-  if (Number.isInteger(health.maxActiveRaces) && health.maxActiveRaces < roomCount) throw new Error('configured_race_limit_below_requested_room_count');
+  if (Number.isInteger(health.maxActiveRaces) && health.maxActiveRaces < roomsCount) throw new Error('configured_race_limit_below_requested_room_count');
   for (const worldId of ['alps', 'hell'].slice(0, roomsCount)) {
     const room = { worldId, clients: [], samples: [], latest: null, events: {}, phase: 'lobby' };
     rooms.push(room);
