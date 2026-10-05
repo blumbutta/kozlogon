@@ -64,6 +64,12 @@ export function applyState(engine,state) {
 }
 
 export function serializeEvent(type,data,engine) {
+ // Removal needs only the identifier. Re-sending a bullet's entire trail to
+ // every player before deleting it wastes much more traffic than its snapshots.
+ if(type==='remove'&&data&&engine?.entities?.includes(data)){
+  const minimal={id:plain(data.id)};if(data.kind!==undefined)minimal.kind=plain(data.kind);
+  return {type,data:{_ref:'entity',id:data.id,data:minimal}};
+ }
  const encode=(value,depth=0)=>{
   if(value===null||typeof value!=='object')return plain(value);
   if(depth>5)return undefined;

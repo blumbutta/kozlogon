@@ -64,6 +64,25 @@ export class BoundedHeightfield extends CANNON.Heightfield {
  }
  update(){super.update();this.pillarCacheKeys=[];this.pillarCacheCursor=0;}
 }
+export function installHeightfieldBoundsFilter(world){
+ const narrowphase=world.narrowphase,original=narrowphase.sphereConvex,bounds=new WeakMap();
+ // Heightfield pillars extend down to the mountain's lowest vertex. Their
+ // bounding spheres are huge; real shape bounds cheaply exclude adjacent cells.
+ narrowphase.sphereConvex=function(si,sj,xi,xj,qi,qj,bi,bj,rsi,rsj,justTest){
+  if(rsj?.type===CANNON.Shape.types.HEIGHTFIELD&&rsi?.type===CANNON.Shape.types.SPHERE){
+   if(rsj.cacheEnabled){
+    let box=bounds.get(sj);
+    if(!box||box.field!==rsj||box.x!==xj.x||box.y!==xj.y||box.z!==xj.z||box.qx!==qj.x||box.qy!==qj.y||box.qz!==qj.z||box.qw!==qj.w){
+     box={field:rsj,x:xj.x,y:xj.y,z:xj.z,qx:qj.x,qy:qj.y,qz:qj.z,qw:qj.w,min:new CANNON.Vec3(),max:new CANNON.Vec3()};
+     sj.calculateWorldAABB(xj,qj,box.min,box.max);bounds.set(sj,box);
+    }
+    const r=si.radius+1e-7,min=box.min,max=box.max;
+    if(xi.x+r<min.x||xi.x-r>max.x||xi.y+r<min.y||xi.y-r>max.y||xi.z+r<min.z||xi.z-r>max.z)return justTest?false:undefined;
+   }else bounds.delete(sj);
+  }
+  return original.call(this,si,sj,xi,xj,qi,qj,bi,bj,rsi,rsj,justTest);
+ };
+}
 export class RaceEngine {
  constructor(goats,hazards,event=()=>{},options={}){
   this.network=Boolean(options.network);this.maxSteerAngle=MAX_STEER_ANGLE;this.mountain=getActiveWorld();this.pits=spikePits();this.lava=lavaFlows();
@@ -83,6 +102,7 @@ export class RaceEngine {
   // Stable body IDs also keep bomb removals from shifting previous contacts.
   this.world.collisionMatrix=new CANNON.ObjectCollisionMatrix();
   this.world.collisionMatrixPrevious=new CANNON.ObjectCollisionMatrix();
+  installHeightfieldBoundsFilter(this.world);
   this.world.defaultContactMaterial.friction=.4;this.world.defaultContactMaterial.restitution=.23;
   const material=this.groundMaterial=new CANNON.Material({friction:1,restitution:1});
   const ground=this.groundBody=new CANNON.Body({mass:0,material});

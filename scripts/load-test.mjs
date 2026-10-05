@@ -164,7 +164,7 @@ try {
       if(errors.length||performance.now()>deadline){clearInterval(timer);reject(new Error('races_failed_to_start'));}
       else if(['countdown','racing'].includes(room.latest?.phase)){clearInterval(timer);resolve();}
     },50);});
-    const spectator = await connect(room, { type: 'join', roomId: room.host.welcome.roomId, nickname: `Зритель ${worldId}` });
+    const spectator = await connect(room, { type: 'join', roomId: room.host.welcome.roomId, nickname: `Зритель ${room.worldId}` });
     if (spectator.welcome.role !== 'spectator') throw new Error('late_observer_failed');
   }
   log({ status: 'testing', rooms: roomsCount, players: roomsCount * humansPerRoom, bots: roomsCount*(20-humansPerRoom), spectators: roomsCount, durationSeconds, warmupSeconds });

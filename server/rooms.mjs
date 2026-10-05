@@ -17,9 +17,9 @@ export function normalizeNickname(value,fallback='Рогач'){
 }
 const fail=(code,message)=>{const error=new Error(message);error.code=code;throw error;};
 const safeSend=(connection,message)=>{try{connection?.send(message);}catch{/* A closed socket is removed by the transport. */}};
-const encodedSend=(connection,message,encoded,compressed)=>{
+const encodedSend=(connection,message,encoded,compressed,utf8=null)=>{
  if(!connection)return;
- try{if(connection.sendPacket)connection.sendPacket(connection.compression&&compressed?compressed:encoded);else safeSend(connection,message);}catch{/* A closing transport is handled by disconnect. */}
+ try{if(connection.sendPacket){if(connection.compression&&compressed)connection.sendPacket(compressed);else connection.sendPacket(encoded,utf8);}else safeSend(connection,message);}catch{/* A closing transport is handled by disconnect. */}
 };
 
 export class RaceRoom {
@@ -57,7 +57,10 @@ export class RaceRoom {
   if(!connections.length)return;
   const encoded=JSON.stringify(message);
   const compressed=['state','raceStart'].includes(message.type)&&connections.some(connection=>connection.compression&&connection.sendPacket)?deflateSync(encoded,{level:1}):null;
-  for(const connection of connections)encodedSend(connection,message,encoded,compressed);
+  // A shared immutable UTF-8 buffer avoids encoding the same event separately
+  // for every socket, while transport keeps these packets as text messages.
+  const utf8=connections.some(connection=>connection.sendPacket&&!(connection.compression&&compressed))?Buffer.from(encoded):null;
+  for(const connection of connections)encodedSend(connection,message,encoded,compressed,utf8);
  }
  broadcastRoom(){this.broadcast({type:'room',...this.describe()});}
  selectCharacter(member,characterId){

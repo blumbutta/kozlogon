@@ -39,7 +39,7 @@ server.on('upgrade',(request,socket,head)=>{
 });
 sockets.on('connection',ws=>{
  const ip=ws.clientIp;connectionsByIp.set(ip,(connectionsByIp.get(ip)||0)+1);
- const sendPacket=packet=>{if(ws.readyState===WebSocket.OPEN&&ws.bufferedAmount<1024*1024)ws.send(packet);else if(ws.bufferedAmount>=1024*1024)ws.close(1013,'Connection too slow');};
+ const sendPacket=(packet,utf8)=>{if(ws.readyState===WebSocket.OPEN&&ws.bufferedAmount<1024*1024){if(utf8)ws.send(utf8,{binary:false});else ws.send(packet);}else if(ws.bufferedAmount>=1024*1024)ws.close(1013,'Connection too slow');};
  const connection={send(message){sendPacket(typeof message==='string'?message:JSON.stringify(message));},sendPacket,close(){ws.close(4001,'Reconnected elsewhere');}};
  ws.isAlive=true;ws.on('pong',()=>{ws.isAlive=true;});
  let windowStart=Date.now(),messages=0;
