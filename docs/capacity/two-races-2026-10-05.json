@@ -1,0 +1,331 @@
+{
+  "testedAt": "2026-10-05",
+  "server": "https://kozlogon-server.onrender.com",
+  "serverCommit": "0a15cb3",
+  "configuredCompute": {
+    "cpu": 0.5,
+    "ramMb": 512
+  },
+  "configurationSource": "User-selected Render compute plan; CPU and RAM usage were not exposed by the public server.",
+  "profile": "Two simultaneous rooms, Alps and Hell, twenty connected humans and one observer each, 30 Hz controls, regular bombs/traps/jumps after 15 second warmup.",
+  "result": {
+    "status": "unusable",
+    "durationSeconds": 120.78,
+    "warmupSeconds": 15,
+    "rooms": [
+      {
+        "world": "alps",
+        "players": 20,
+        "spectators": 1,
+        "phase": "racing",
+        "elapsed": 70.86666666666393,
+        "wallSeconds": 104.51,
+        "simulationTickHz": 35.86,
+        "simulationElapsedRatio": 0.598,
+        "snapshotsPerSecond": 2.39,
+        "maximumSnapshotGapMs": 1097.96,
+        "bytesPerClientPerSecond": 52579,
+        "pingMeanMs": 314,
+        "pingP95Ms": 643,
+        "pingMaxMs": 775,
+        "bytesAllClients": 124298202,
+        "humanCount": 20,
+        "uniquePlayerIds": 20,
+        "acceptedInputsMinimum": 3558,
+        "furthestDistance": 1363,
+        "finished": 0,
+        "deaths": 190,
+        "bombs": 228,
+        "traps": 171,
+        "events": {
+          "reset": 1,
+          "weather": 4,
+          "go": 1,
+          "landing": 255,
+          "spawn": 1062,
+          "shot": 510,
+          "obstacle": 44,
+          "boost": 34,
+          "remove": 958,
+          "jump": 434,
+          "score": 190,
+          "wildlifeHit": 16,
+          "death": 190,
+          "respawn": 189,
+          "ride": 6,
+          "bomb": 234,
+          "trap": 174,
+          "trapSnap": 141,
+          "explosion": 307,
+          "yetiKill": 4,
+          "airRaid": 2,
+          "rideEnd": 4,
+          "bombDrop": 6,
+          "clusterSplit": 6,
+          "hazardKill": 4,
+          "ramp": 15,
+          "rocketFired": 41,
+          "trickEnd": 15,
+          "lightning": 35,
+          "skierHit": 1
+        },
+        "windows": [
+          {
+            "fromSecond": 15,
+            "wallSeconds": 9.19,
+            "simulationTickHz": 31.01,
+            "simulationElapsedRatio": 0.517,
+            "snapshotsPerSecond": 2.07,
+            "maximumSnapshotGapMs": 728.95,
+            "bytesPerClientPerSecond": 21430
+          },
+          {
+            "fromSecond": 25,
+            "wallSeconds": 9.41,
+            "simulationTickHz": 36.56,
+            "simulationElapsedRatio": 0.609,
+            "snapshotsPerSecond": 2.44,
+            "maximumSnapshotGapMs": 607.14,
+            "bytesPerClientPerSecond": 37699
+          },
+          {
+            "fromSecond": 35,
+            "wallSeconds": 9.59,
+            "simulationTickHz": 39.11,
+            "simulationElapsedRatio": 0.652,
+            "snapshotsPerSecond": 2.61,
+            "maximumSnapshotGapMs": 573.92,
+            "bytesPerClientPerSecond": 44660
+          },
+          {
+            "fromSecond": 45,
+            "wallSeconds": 9.57,
+            "simulationTickHz": 36.03,
+            "simulationElapsedRatio": 0.601,
+            "snapshotsPerSecond": 2.4,
+            "maximumSnapshotGapMs": 682.03,
+            "bytesPerClientPerSecond": 38221
+          },
+          {
+            "fromSecond": 55,
+            "wallSeconds": 9.77,
+            "simulationTickHz": 38.3,
+            "simulationElapsedRatio": 0.638,
+            "snapshotsPerSecond": 2.56,
+            "maximumSnapshotGapMs": 607.62,
+            "bytesPerClientPerSecond": 47825
+          },
+          {
+            "fromSecond": 65,
+            "wallSeconds": 9.49,
+            "simulationTickHz": 36.35,
+            "simulationElapsedRatio": 0.606,
+            "snapshotsPerSecond": 2.42,
+            "maximumSnapshotGapMs": 1097.96,
+            "bytesPerClientPerSecond": 46380
+          },
+          {
+            "fromSecond": 75,
+            "wallSeconds": 9.37,
+            "simulationTickHz": 36.81,
+            "simulationElapsedRatio": 0.614,
+            "snapshotsPerSecond": 2.45,
+            "maximumSnapshotGapMs": 617.95,
+            "bytesPerClientPerSecond": 57816
+          },
+          {
+            "fromSecond": 85,
+            "wallSeconds": 9.62,
+            "simulationTickHz": 34.31,
+            "simulationElapsedRatio": 0.572,
+            "snapshotsPerSecond": 2.29,
+            "maximumSnapshotGapMs": 684.65,
+            "bytesPerClientPerSecond": 66989
+          },
+          {
+            "fromSecond": 95,
+            "wallSeconds": 9.72,
+            "simulationTickHz": 33.94,
+            "simulationElapsedRatio": 0.566,
+            "snapshotsPerSecond": 2.26,
+            "maximumSnapshotGapMs": 790.84,
+            "bytesPerClientPerSecond": 65548
+          },
+          {
+            "fromSecond": 105,
+            "wallSeconds": 9.73,
+            "simulationTickHz": 35.46,
+            "simulationElapsedRatio": 0.591,
+            "snapshotsPerSecond": 2.36,
+            "maximumSnapshotGapMs": 681.94,
+            "bytesPerClientPerSecond": 75594
+          }
+        ]
+      },
+      {
+        "world": "hell",
+        "players": 20,
+        "spectators": 1,
+        "phase": "racing",
+        "elapsed": 70.61666666666395,
+        "wallSeconds": 105.02,
+        "simulationTickHz": 35.83,
+        "simulationElapsedRatio": 0.597,
+        "snapshotsPerSecond": 2.39,
+        "maximumSnapshotGapMs": 871.05,
+        "bytesPerClientPerSecond": 46174,
+        "pingMeanMs": 312,
+        "pingP95Ms": 577,
+        "pingMaxMs": 802,
+        "bytesAllClients": 110088189,
+        "humanCount": 20,
+        "uniquePlayerIds": 20,
+        "acceptedInputsMinimum": 3558,
+        "furthestDistance": 1015,
+        "finished": 0,
+        "deaths": 203,
+        "bombs": 221,
+        "traps": 167,
+        "events": {
+          "reset": 1,
+          "weather": 4,
+          "go": 1,
+          "landing": 250,
+          "spawn": 936,
+          "shot": 391,
+          "boost": 45,
+          "obstacle": 39,
+          "remove": 843,
+          "death": 203,
+          "jump": 400,
+          "ride": 5,
+          "respawn": 201,
+          "score": 187,
+          "wildlifeHit": 17,
+          "bomb": 223,
+          "trap": 167,
+          "trapSnap": 140,
+          "explosion": 311,
+          "yetiKill": 5,
+          "rideEnd": 2,
+          "airRaid": 2,
+          "bombDrop": 6,
+          "clusterSplit": 6,
+          "hazardKill": 1,
+          "skierHit": 3,
+          "ramp": 19,
+          "rocketFired": 57,
+          "trickEnd": 15,
+          "unstuck": 3,
+          "lightning": 32
+        },
+        "windows": [
+          {
+            "fromSecond": 15,
+            "wallSeconds": 9.39,
+            "simulationTickHz": 30.34,
+            "simulationElapsedRatio": 0.506,
+            "snapshotsPerSecond": 2.02,
+            "maximumSnapshotGapMs": 871.05,
+            "bytesPerClientPerSecond": 20931
+          },
+          {
+            "fromSecond": 25,
+            "wallSeconds": 9.9,
+            "simulationTickHz": 36.28,
+            "simulationElapsedRatio": 0.605,
+            "snapshotsPerSecond": 2.43,
+            "maximumSnapshotGapMs": 679.45,
+            "bytesPerClientPerSecond": 39824
+          },
+          {
+            "fromSecond": 35,
+            "wallSeconds": 9.52,
+            "simulationTickHz": 39.38,
+            "simulationElapsedRatio": 0.656,
+            "snapshotsPerSecond": 2.63,
+            "maximumSnapshotGapMs": 723.01,
+            "bytesPerClientPerSecond": 45242
+          },
+          {
+            "fromSecond": 45,
+            "wallSeconds": 9.47,
+            "simulationTickHz": 36.44,
+            "simulationElapsedRatio": 0.607,
+            "snapshotsPerSecond": 2.43,
+            "maximumSnapshotGapMs": 699.63,
+            "bytesPerClientPerSecond": 43516
+          },
+          {
+            "fromSecond": 55,
+            "wallSeconds": 9.38,
+            "simulationTickHz": 38.26,
+            "simulationElapsedRatio": 0.638,
+            "snapshotsPerSecond": 2.56,
+            "maximumSnapshotGapMs": 607.94,
+            "bytesPerClientPerSecond": 48900
+          },
+          {
+            "fromSecond": 65,
+            "wallSeconds": 9.61,
+            "simulationTickHz": 35.92,
+            "simulationElapsedRatio": 0.599,
+            "snapshotsPerSecond": 2.39,
+            "maximumSnapshotGapMs": 797.84,
+            "bytesPerClientPerSecond": 42819
+          },
+          {
+            "fromSecond": 75,
+            "wallSeconds": 9.8,
+            "simulationTickHz": 36.75,
+            "simulationElapsedRatio": 0.613,
+            "snapshotsPerSecond": 2.45,
+            "maximumSnapshotGapMs": 615.31,
+            "bytesPerClientPerSecond": 52144
+          },
+          {
+            "fromSecond": 85,
+            "wallSeconds": 9.41,
+            "simulationTickHz": 35.08,
+            "simulationElapsedRatio": 0.585,
+            "snapshotsPerSecond": 2.34,
+            "maximumSnapshotGapMs": 643.99,
+            "bytesPerClientPerSecond": 46573
+          },
+          {
+            "fromSecond": 95,
+            "wallSeconds": 9.08,
+            "simulationTickHz": 34.71,
+            "simulationElapsedRatio": 0.578,
+            "snapshotsPerSecond": 2.31,
+            "maximumSnapshotGapMs": 753.33,
+            "bytesPerClientPerSecond": 50928
+          },
+          {
+            "fromSecond": 105,
+            "wallSeconds": 9.72,
+            "simulationTickHz": 35.5,
+            "simulationElapsedRatio": 0.592,
+            "snapshotsPerSecond": 2.37,
+            "maximumSnapshotGapMs": 697.45,
+            "bytesPerClientPerSecond": 54394
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "health": {
+      "samples": 53,
+      "failed": 0,
+      "meanMs": 768,
+      "p95Ms": 1170,
+      "maxMs": 1248
+    },
+    "testClient": {
+      "cpuSeconds": 20.15,
+      "eventLoopP95Ms": 21.84,
+      "eventLoopMaxMs": 79.76
+    }
+  },
+  "scope": "120 seconds of observed real server throughput; not a measurement of long-term CPU or memory headroom."
+}

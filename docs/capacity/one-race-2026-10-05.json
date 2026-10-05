@@ -1,0 +1,126 @@
+{
+  "testedAt": "2026-10-05",
+  "server": "https://kozlogon-server.onrender.com",
+  "serverCommit": "0d2de67",
+  "configuredCompute": {
+    "cpu": 0.5,
+    "ramMb": 512
+  },
+  "configurationSource": "User-selected Render compute plan; CPU and RAM usage were not exposed by the public server.",
+  "profile": "One Alps room, twenty connected humans and one observer, 30 Hz controls, regular bombs/traps/jumps after 15 second warmup.",
+  "result": {
+    "status": "stable",
+    "durationSeconds": 60.52,
+    "warmupSeconds": 15,
+    "rooms": [
+      {
+        "world": "alps",
+        "players": 20,
+        "spectators": 1,
+        "phase": "racing",
+        "elapsed": 55.9999999999981,
+        "wallSeconds": 45.41,
+        "simulationTickHz": 59.43,
+        "simulationElapsedRatio": 0.991,
+        "snapshotsPerSecond": 11.98,
+        "maximumSnapshotGapMs": 476.23,
+        "bytesPerClientPerSecond": 167621,
+        "pingMeanMs": 96,
+        "pingP95Ms": 227,
+        "pingMaxMs": 278,
+        "bytesAllClients": 177736237,
+        "humanCount": 20,
+        "uniquePlayerIds": 20,
+        "acceptedInputsMinimum": 1794,
+        "furthestDistance": 1042,
+        "finished": 0,
+        "deaths": 135,
+        "bombs": 179,
+        "traps": 120,
+        "events": {
+          "reset": 1,
+          "weather": 4,
+          "go": 1,
+          "landing": 202,
+          "spawn": 764,
+          "shot": 347,
+          "boost": 29,
+          "obstacle": 36,
+          "remove": 670,
+          "death": 135,
+          "score": 141,
+          "wildlifeHit": 10,
+          "ride": 4,
+          "respawn": 134,
+          "jump": 302,
+          "bomb": 179,
+          "trap": 120,
+          "explosion": 253,
+          "trapSnap": 106,
+          "rideEnd": 2,
+          "yetiKill": 5,
+          "airRaid": 2,
+          "bombDrop": 6,
+          "clusterSplit": 6,
+          "hazardKill": 2,
+          "ramp": 20,
+          "rocketFired": 54,
+          "trickEnd": 19,
+          "skierHit": 2
+        },
+        "windows": [
+          {
+            "fromSecond": 15,
+            "wallSeconds": 9.87,
+            "simulationTickHz": 59.26,
+            "simulationElapsedRatio": 0.988,
+            "snapshotsPerSecond": 11.04,
+            "maximumSnapshotGapMs": 397.44,
+            "bytesPerClientPerSecond": 130585
+          },
+          {
+            "fromSecond": 25,
+            "wallSeconds": 10,
+            "simulationTickHz": 59.81,
+            "simulationElapsedRatio": 0.997,
+            "snapshotsPerSecond": 12.2,
+            "maximumSnapshotGapMs": 307.9,
+            "bytesPerClientPerSecond": 153554
+          },
+          {
+            "fromSecond": 35,
+            "wallSeconds": 9.88,
+            "simulationTickHz": 58.33,
+            "simulationElapsedRatio": 0.972,
+            "snapshotsPerSecond": 10.53,
+            "maximumSnapshotGapMs": 476.23,
+            "bytesPerClientPerSecond": 148999
+          },
+          {
+            "fromSecond": 45,
+            "wallSeconds": 9.94,
+            "simulationTickHz": 60.04,
+            "simulationElapsedRatio": 1.001,
+            "snapshotsPerSecond": 13.58,
+            "maximumSnapshotGapMs": 262.65,
+            "bytesPerClientPerSecond": 215366
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "health": {
+      "samples": 22,
+      "failed": 0,
+      "meanMs": 189,
+      "p95Ms": 497,
+      "maxMs": 708
+    },
+    "testClient": {
+      "cpuSeconds": 8.91,
+      "eventLoopP95Ms": 21.63,
+      "eventLoopMaxMs": 35.32
+    }
+  },
+  "scope": "60 seconds of observed real server throughput; not a measurement of long-term CPU or memory headroom."
+}
