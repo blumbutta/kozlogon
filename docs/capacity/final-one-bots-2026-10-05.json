@@ -1,0 +1,130 @@
+{
+  "testedAt": "2026-10-05",
+  "server": "https://kozlogon-server.onrender.com",
+  "serverCommit": "a5e64a0",
+  "configuredCompute": {
+    "cpu": 0.5,
+    "ramMb": 512
+  },
+  "configurationSource": "User-selected Render plan. Public server does not expose live CPU or RAM usage.",
+  "maxActiveRaces": 1,
+  "profile": "One private Alps room: three simulated human clients, seventeen bots and one spectator; 30 Hz drive/steer and bombs/traps/jumps after warmup.",
+  "result": {
+    "status": "stable",
+    "durationSeconds": 60.75,
+    "warmupSeconds": 15,
+    "rooms": [
+      {
+        "world": "alps",
+        "players": 3,
+        "bots": 17,
+        "spectators": 1,
+        "phase": "racing",
+        "elapsed": 50.63333333333174,
+        "wallSeconds": 45.67,
+        "simulationTickHz": 59.99,
+        "simulationElapsedRatio": 1,
+        "snapshotsPerSecond": 14.87,
+        "maximumSnapshotGapMs": 219.43,
+        "bytesPerClientPerSecond": 135768,
+        "pingMeanMs": 75,
+        "pingP95Ms": 124,
+        "pingMaxMs": 273,
+        "bytesAllClients": 28800565,
+        "humanCount": 3,
+        "uniquePlayerIds": 3,
+        "acceptedInputsMinimum": 1790,
+        "furthestDistance": 994,
+        "finished": 0,
+        "deaths": 49,
+        "bombs": 49,
+        "traps": 18,
+        "events": {
+          "reset": 1,
+          "weather": 3,
+          "go": 1,
+          "landing": 184,
+          "spawn": 416,
+          "shot": 253,
+          "jump": 81,
+          "boost": 69,
+          "obstacle": 19,
+          "death": 49,
+          "remove": 382,
+          "respawn": 48,
+          "ride": 6,
+          "score": 45,
+          "wildlifeHit": 15,
+          "trap": 18,
+          "trapSnap": 10,
+          "bomb": 49,
+          "explosion": 132,
+          "unstuck": 30,
+          "rideEnd": 4,
+          "airRaid": 2,
+          "bombDrop": 3,
+          "clusterSplit": 3,
+          "ramp": 24,
+          "rocketFired": 63,
+          "trickEnd": 23,
+          "yetiKill": 2
+        },
+        "windows": [
+          {
+            "fromSecond": 15,
+            "wallSeconds": 9.94,
+            "simulationTickHz": 59.94,
+            "simulationElapsedRatio": 0.999,
+            "snapshotsPerSecond": 14.99,
+            "maximumSnapshotGapMs": 184.19,
+            "bytesPerClientPerSecond": 107051
+          },
+          {
+            "fromSecond": 25,
+            "wallSeconds": 9.94,
+            "simulationTickHz": 60.08,
+            "simulationElapsedRatio": 1.001,
+            "snapshotsPerSecond": 14.89,
+            "maximumSnapshotGapMs": 147.2,
+            "bytesPerClientPerSecond": 130411
+          },
+          {
+            "fromSecond": 35,
+            "wallSeconds": 9.94,
+            "simulationTickHz": 60.03,
+            "simulationElapsedRatio": 1.001,
+            "snapshotsPerSecond": 14.48,
+            "maximumSnapshotGapMs": 219.43,
+            "bytesPerClientPerSecond": 132322
+          },
+          {
+            "fromSecond": 45,
+            "wallSeconds": 9.92,
+            "simulationTickHz": 60.09,
+            "simulationElapsedRatio": 1.002,
+            "snapshotsPerSecond": 15.02,
+            "maximumSnapshotGapMs": 134.57,
+            "bytesPerClientPerSecond": 162605
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "health": {
+      "samples": 22,
+      "failed": 0,
+      "meanMs": 118,
+      "p95Ms": 147,
+      "maxMs": 284
+    },
+    "testClient": {
+      "cpuSeconds": 4.15,
+      "eventLoopP95Ms": 21.48,
+      "eventLoopMaxMs": 27.59
+    }
+  },
+  "cleanup": {
+    "status": "cleaned_up",
+    "closedConnections": 4
+  }
+}

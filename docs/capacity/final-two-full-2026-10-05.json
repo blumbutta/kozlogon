@@ -1,0 +1,358 @@
+{
+  "testedAt": "2026-10-05",
+  "server": "https://kozlogon-server.onrender.com",
+  "serverCommit": "2716980",
+  "configuredCompute": {
+    "cpu": 0.5,
+    "ramMb": 512
+  },
+  "configurationSource": "User-selected Render plan. Public server does not expose live CPU or RAM usage.",
+  "profile": "Two concurrent private rooms: twenty simulated human clients per room and one spectator each; 30 Hz drive/steer and bombs/traps/jumps after warmup.",
+  "result": {
+    "status": "borderline",
+    "durationSeconds": 121.55,
+    "warmupSeconds": 15,
+    "rooms": [
+      {
+        "world": "alps",
+        "players": 20,
+        "bots": 0,
+        "spectators": 1,
+        "phase": "racing",
+        "elapsed": 105.69999999999528,
+        "wallSeconds": 106.48,
+        "simulationTickHz": 57.03,
+        "simulationElapsedRatio": 0.95,
+        "snapshotsPerSecond": 8.56,
+        "maximumSnapshotGapMs": 520.2,
+        "bytesPerClientPerSecond": 116783,
+        "pingMeanMs": 176,
+        "pingP95Ms": 375,
+        "pingMaxMs": 1754,
+        "bytesAllClients": 278759225,
+        "humanCount": 20,
+        "uniquePlayerIds": 20,
+        "acceptedInputsMinimum": 3532,
+        "furthestDistance": 1966,
+        "finished": 0,
+        "deaths": 262,
+        "bombs": 362,
+        "traps": 258,
+        "events": {
+          "reset": 1,
+          "weather": 6,
+          "go": 1,
+          "landing": 363,
+          "jump": 672,
+          "spawn": 1902,
+          "shot": 1068,
+          "obstacle": 68,
+          "boost": 65,
+          "death": 262,
+          "remove": 1820,
+          "respawn": 260,
+          "score": 260,
+          "wildlifeHit": 24,
+          "ride": 11,
+          "bomb": 362,
+          "trap": 258,
+          "trapSnap": 191,
+          "explosion": 503,
+          "hazardKill": 4,
+          "airRaid": 4,
+          "rideEnd": 9,
+          "yetiKill": 7,
+          "bombDrop": 9,
+          "clusterSplit": 9,
+          "skierHit": 3,
+          "unstuck": 43,
+          "ramp": 34,
+          "rocketFired": 77,
+          "trickEnd": 30,
+          "lightning": 40
+        },
+        "windows": [
+          {
+            "fromSecond": 15,
+            "wallSeconds": 9.66,
+            "simulationTickHz": 55.47,
+            "simulationElapsedRatio": 0.924,
+            "snapshotsPerSecond": 6.52,
+            "maximumSnapshotGapMs": 508.9,
+            "bytesPerClientPerSecond": 48852
+          },
+          {
+            "fromSecond": 25,
+            "wallSeconds": 9.87,
+            "simulationTickHz": 58.16,
+            "simulationElapsedRatio": 0.969,
+            "snapshotsPerSecond": 10.23,
+            "maximumSnapshotGapMs": 413.18,
+            "bytesPerClientPerSecond": 106181
+          },
+          {
+            "fromSecond": 35,
+            "wallSeconds": 9.59,
+            "simulationTickHz": 56.96,
+            "simulationElapsedRatio": 0.949,
+            "snapshotsPerSecond": 9.7,
+            "maximumSnapshotGapMs": 389.01,
+            "bytesPerClientPerSecond": 109025
+          },
+          {
+            "fromSecond": 45,
+            "wallSeconds": 9.9,
+            "simulationTickHz": 58.89,
+            "simulationElapsedRatio": 0.982,
+            "snapshotsPerSecond": 8.18,
+            "maximumSnapshotGapMs": 375.54,
+            "bytesPerClientPerSecond": 101137
+          },
+          {
+            "fromSecond": 55,
+            "wallSeconds": 9.91,
+            "simulationTickHz": 57.13,
+            "simulationElapsedRatio": 0.952,
+            "snapshotsPerSecond": 8.07,
+            "maximumSnapshotGapMs": 434.66,
+            "bytesPerClientPerSecond": 109787
+          },
+          {
+            "fromSecond": 65,
+            "wallSeconds": 9.79,
+            "simulationTickHz": 56.77,
+            "simulationElapsedRatio": 0.946,
+            "snapshotsPerSecond": 7.66,
+            "maximumSnapshotGapMs": 405.9,
+            "bytesPerClientPerSecond": 113135
+          },
+          {
+            "fromSecond": 75,
+            "wallSeconds": 9.94,
+            "simulationTickHz": 59.27,
+            "simulationElapsedRatio": 0.988,
+            "snapshotsPerSecond": 11.77,
+            "maximumSnapshotGapMs": 370.14,
+            "bytesPerClientPerSecond": 167667
+          },
+          {
+            "fromSecond": 85,
+            "wallSeconds": 9.92,
+            "simulationTickHz": 57.47,
+            "simulationElapsedRatio": 0.958,
+            "snapshotsPerSecond": 9.78,
+            "maximumSnapshotGapMs": 470.53,
+            "bytesPerClientPerSecond": 152155
+          },
+          {
+            "fromSecond": 95,
+            "wallSeconds": 9.75,
+            "simulationTickHz": 55.49,
+            "simulationElapsedRatio": 0.925,
+            "snapshotsPerSecond": 6.87,
+            "maximumSnapshotGapMs": 479.7,
+            "bytesPerClientPerSecond": 118508
+          },
+          {
+            "fromSecond": 105,
+            "wallSeconds": 9.71,
+            "simulationTickHz": 57.9,
+            "simulationElapsedRatio": 0.965,
+            "snapshotsPerSecond": 9.38,
+            "maximumSnapshotGapMs": 469.16,
+            "bytesPerClientPerSecond": 155227
+          }
+        ]
+      },
+      {
+        "world": "hell",
+        "players": 20,
+        "bots": 0,
+        "spectators": 1,
+        "phase": "racing",
+        "elapsed": 105.81666666666194,
+        "wallSeconds": 106.42,
+        "simulationTickHz": 57.05,
+        "simulationElapsedRatio": 0.951,
+        "snapshotsPerSecond": 8.54,
+        "maximumSnapshotGapMs": 587.58,
+        "bytesPerClientPerSecond": 114218,
+        "pingMeanMs": 178,
+        "pingP95Ms": 376,
+        "pingMaxMs": 1655,
+        "bytesAllClients": 273064549,
+        "humanCount": 20,
+        "uniquePlayerIds": 20,
+        "acceptedInputsMinimum": 3545,
+        "furthestDistance": 1783,
+        "finished": 0,
+        "deaths": 293,
+        "bombs": 362,
+        "traps": 258,
+        "events": {
+          "reset": 1,
+          "weather": 6,
+          "go": 1,
+          "landing": 371,
+          "spawn": 1861,
+          "shot": 1038,
+          "jump": 626,
+          "obstacle": 60,
+          "death": 295,
+          "remove": 1762,
+          "boost": 71,
+          "respawn": 292,
+          "ride": 8,
+          "score": 248,
+          "wildlifeHit": 26,
+          "trap": 258,
+          "bomb": 362,
+          "trapSnap": 191,
+          "explosion": 486,
+          "yetiKill": 8,
+          "rideEnd": 6,
+          "airRaid": 4,
+          "bombDrop": 10,
+          "clusterSplit": 10,
+          "hazardKill": 5,
+          "unstuck": 6,
+          "ramp": 24,
+          "rocketFired": 62,
+          "trickEnd": 22,
+          "lightning": 38
+        },
+        "windows": [
+          {
+            "fromSecond": 15,
+            "wallSeconds": 9.79,
+            "simulationTickHz": 55.46,
+            "simulationElapsedRatio": 0.924,
+            "snapshotsPerSecond": 6.54,
+            "maximumSnapshotGapMs": 587.58,
+            "bytesPerClientPerSecond": 50225
+          },
+          {
+            "fromSecond": 25,
+            "wallSeconds": 9.64,
+            "simulationTickHz": 59.42,
+            "simulationElapsedRatio": 0.99,
+            "snapshotsPerSecond": 10.37,
+            "maximumSnapshotGapMs": 310.26,
+            "bytesPerClientPerSecond": 107649
+          },
+          {
+            "fromSecond": 35,
+            "wallSeconds": 9.58,
+            "simulationTickHz": 56.97,
+            "simulationElapsedRatio": 0.95,
+            "snapshotsPerSecond": 9.6,
+            "maximumSnapshotGapMs": 331.46,
+            "bytesPerClientPerSecond": 108198
+          },
+          {
+            "fromSecond": 45,
+            "wallSeconds": 9.82,
+            "simulationTickHz": 59.37,
+            "simulationElapsedRatio": 0.99,
+            "snapshotsPerSecond": 8.25,
+            "maximumSnapshotGapMs": 320.92,
+            "bytesPerClientPerSecond": 102447
+          },
+          {
+            "fromSecond": 55,
+            "wallSeconds": 9.7,
+            "simulationTickHz": 57.61,
+            "simulationElapsedRatio": 0.96,
+            "snapshotsPerSecond": 8.14,
+            "maximumSnapshotGapMs": 481.16,
+            "bytesPerClientPerSecond": 111174
+          },
+          {
+            "fromSecond": 65,
+            "wallSeconds": 9.94,
+            "simulationTickHz": 56.93,
+            "simulationElapsedRatio": 0.949,
+            "snapshotsPerSecond": 7.74,
+            "maximumSnapshotGapMs": 391.96,
+            "bytesPerClientPerSecond": 110327
+          },
+          {
+            "fromSecond": 75,
+            "wallSeconds": 9.89,
+            "simulationTickHz": 59.45,
+            "simulationElapsedRatio": 0.991,
+            "snapshotsPerSecond": 11.63,
+            "maximumSnapshotGapMs": 368.75,
+            "bytesPerClientPerSecond": 164364
+          },
+          {
+            "fromSecond": 85,
+            "wallSeconds": 9.8,
+            "simulationTickHz": 56.64,
+            "simulationElapsedRatio": 0.944,
+            "snapshotsPerSecond": 10,
+            "maximumSnapshotGapMs": 427.94,
+            "bytesPerClientPerSecond": 146713
+          },
+          {
+            "fromSecond": 95,
+            "wallSeconds": 9.89,
+            "simulationTickHz": 55.44,
+            "simulationElapsedRatio": 0.924,
+            "snapshotsPerSecond": 6.68,
+            "maximumSnapshotGapMs": 488.61,
+            "bytesPerClientPerSecond": 114566
+          },
+          {
+            "fromSecond": 105,
+            "wallSeconds": 9.85,
+            "simulationTickHz": 57.55,
+            "simulationElapsedRatio": 0.959,
+            "snapshotsPerSecond": 9.34,
+            "maximumSnapshotGapMs": 524.95,
+            "bytesPerClientPerSecond": 145219
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "health": {
+      "samples": 53,
+      "failed": 0,
+      "meanMs": 339,
+      "p95Ms": 653,
+      "maxMs": 1601
+    },
+    "testClient": {
+      "cpuSeconds": 16.92,
+      "eventLoopP95Ms": 22.64,
+      "eventLoopMaxMs": 147.85
+    }
+  },
+  "releaseFingerprints": [
+    {
+      "status": "release_fingerprint",
+      "world": "hell",
+      "bulletRemoveHasHistory": false,
+      "bulletRemoveKeys": [
+        "id",
+        "kind"
+      ],
+      "wallSeconds": 16.42
+    },
+    {
+      "status": "release_fingerprint",
+      "world": "alps",
+      "bulletRemoveHasHistory": false,
+      "bulletRemoveKeys": [
+        "id",
+        "kind"
+      ],
+      "wallSeconds": 18.12
+    }
+  ],
+  "cleanup": {
+    "status": "cleaned_up",
+    "closedConnections": 42
+  }
+}

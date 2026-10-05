@@ -11,6 +11,8 @@ import {createSceneEffects} from './scene-effects.js';
 import {createGameAudio} from './game-audio.js';
 import {createRaceCountdown} from './race-countdown.js';
 import {playerEmoji} from './player-emojis.js';
+import {batchRigidMaterials} from './render-batch.js';
+import {createNetworkVisuals} from './network-visuals.js';
 import {createRideAssets} from './ride-assets.js';
 import {createTerrainChunks,batchTrees,createFragmentPool} from './render-budget.js';
 import {CHARACTERS as ALPINE_CHARACTERS,spawnPosition} from './racers.js';
@@ -44,6 +46,8 @@ const showAssets=createShowAssets(THREE);
 const rideAssets=createRideAssets(THREE);
 const gameAudio=createGameAudio();
 const raceCountdown=createRaceCountdown({onTick:seconds=>gameAudio.raceCountdown(seconds),onGo:()=>gameAudio.raceCountdown(0)});
+const networkVisuals=createNetworkVisuals({delayMs:75,maxExtrapolationMs:75});
+const movingEntityKinds=new Set(['bomb','canister','bomblet','rocket','bullet','bomber','yeti']);
 const boosts=courseBoosts();
 const ROAD = 12, RADIUS = 1.05;
 let selectedCharacterId=CHARACTERS.find(c=>c.id===params.get('character'))?.id||CHARACTERS[0].id;
@@ -89,7 +93,7 @@ function hay(){const g=new THREE.Group();const m=mesh(geo.cylinder,0xd6b270,g,0,
 const ramp=style=>hazardAssets.ramp(style),bear=()=>themeCreatures?.npc('bear')||hazardAssets.bear(),hunter=()=>themeCreatures?.npc('hunter')||hazardAssets.hunter();
 function snowmobileFor(def={}){const g=rideAssets.snowmobile(def);if(themeCreatures){g.remove(g.userData.rider);const rider=themeCreatures.rider(def);g.add(rider);g.userData.rider=rider;g.userData.arms=[-1,1].map(side=>rider.getObjectByName('rider_arm_'+side));g.userData.legs=[-1,1].map(side=>rider.getObjectByName('rider_leg_'+side));g.userData.vehicle.traverse(m=>{if(m.isMesh&&m.material.name.includes('chassis'))m.material.color.setHex(WORLD.id==='hell'?0xad3d42:0x829ccf);});}return g;}
 function characterVisual(def){
- const root=new THREE.Group(),model=themeCreatures?.character(def)||characterAssets.character(def);root.add(model.roll);
+ const root=new THREE.Group(),model=themeCreatures?.character(def)||characterAssets.character(def);batchRigidMaterials(THREE,model.roll);root.add(model.roll);
  const rig=themeCreatures?.trickRig(def)||showAssets.trickRig(def);root.add(rig);
  const ride=snowmobileFor(def);ride.position.y=-1.05;ride.visible=false;root.add(ride);
  const shield=mesh(new THREE.SphereGeometry(1.46,16,10),new THREE.MeshBasicMaterial({color:def.color,transparent:true,opacity:.18,wireframe:true}),root);shield.visible=false;
@@ -190,7 +194,7 @@ function shatterVisual(g,position,offset=0){
  if(!g)return;g.position.set(position.x,position.y-offset,position.z);g.updateMatrixWorld(true);g.visible=false;
  if(new THREE.Vector3(position.x,position.y,position.z).distanceTo(viewGoat().visual.root.position)>150)return;
  sceneEffects.bloodBurst(position,offset>1?1.6:1);
- let pieces=0;g.traverse(part=>{if(!part.isMesh||part.userData.noShatter||!part.visible||pieces>=9)return;pieces++;const color=part.material?.color?.getHex?.()??0xaf6043;fragmentPool.spawn(new THREE.Vector3(position.x,position.y,position.z),new THREE.Vector3((rnd()-.5)*19,5+rnd()*10,(rnd()-.5)*19),new THREE.Vector3(.23+rnd()*.35,.24+rnd()*.42,.23+rnd()*.35),color,1.3,new THREE.Vector3(rnd()*10,rnd()*10,rnd()*10));});
+ let pieces=0;g.traverse(part=>{if(!part.isMesh||part.userData.noShatter||!part.visible||pieces>=9)return;for(const material of part.userData.shatterMaterials||[part.material]){if(pieces>=9)break;pieces++;const color=material?.color?.getHex?.()??0xaf6043;fragmentPool.spawn(new THREE.Vector3(position.x,position.y,position.z),new THREE.Vector3((rnd()-.5)*19,5+rnd()*10,(rnd()-.5)*19),new THREE.Vector3(.23+rnd()*.35,.24+rnd()*.42,.23+rnd()*.35),color,1.3,new THREE.Vector3(rnd()*10,rnd()*10,rnd()*10));}});
  for(let i=0;i<8;i++)fragmentPool.spawn(new THREE.Vector3(position.x,position.y,position.z),new THREE.Vector3((rnd()-.5)*17,5+rnd()*9,(rnd()-.5)*17),new THREE.Vector3(.2+rnd()*.25,.18+rnd()*.4,.2+rnd()*.25),LOOK.blood,1.4,new THREE.Vector3(rnd()*10,rnd()*10,rnd()*10));
 }
 function shatterAnimal(animal,position){shatterVisual(animal.visual,position,animal.centerHeight);}
@@ -240,7 +244,7 @@ function finish(){
 }
 function event(type,data){
  if(predicting)return;
- if(type==='reset'){raceCountdown.reset();sceneEffects.reset();fragmentPool.reset();gameAudio.reset();$('finish-banner').classList.add('hidden');for(const g of dynamic.values())removeEntity(g);dynamic.clear();for(const fx of effects)scene.remove(fx.m);effects.length=0;for(const popup of scorePopups)popup.el.remove();scorePopups.length=0;for(const fx of specialEffects)releaseSpecial(fx);specialEffects.length=0;for(const trail of bulletTrails.values()){scene.remove(trail.line);trail.line.geometry.dispose();trail.line.material.dispose();}bulletTrails.clear();for(const g of goats){g.visual.roll.visible=true;g.visual.rig.visible=false;g.visual.ride.visible=false;}flash=0;flashLight.intensity=0;toastTimer=0;eventTimer=0;$('toast').classList.remove('visible');$('event-message').textContent='';}
+ if(type==='reset'){networkVisuals.reset();raceCountdown.reset();sceneEffects.reset();fragmentPool.reset();gameAudio.reset();$('finish-banner').classList.add('hidden');for(const g of dynamic.values())removeEntity(g);dynamic.clear();for(const fx of effects)scene.remove(fx.m);effects.length=0;for(const popup of scorePopups)popup.el.remove();scorePopups.length=0;for(const fx of specialEffects)releaseSpecial(fx);specialEffects.length=0;for(const trail of bulletTrails.values()){scene.remove(trail.line);trail.line.geometry.dispose();trail.line.material.dispose();}bulletTrails.clear();for(const g of goats){g.visual.roll.visible=true;g.visual.rig.visible=false;g.visual.ride.visible=false;}flash=0;flashLight.intensity=0;toastTimer=0;eventTimer=0;$('toast').classList.remove('visible');$('event-message').textContent='';}
  else if(type==='weather'){const w=data,appearance=weatherLook(WORLD,w);$('weather-name').textContent=w.name;$('weather-effect').textContent=w.effect;$('weather-icon').textContent=w.icon;scene.background.setHex(appearance.color);scene.fog.color.copy(scene.background);scene.fog.far=appearance.fogFar;baseSunIntensity=appearance.sun;sun.intensity=baseSunIntensity;precipitation.visible=appearance.particles;rainLines.visible=appearance.streaks;rainLines.material.color.setHex(appearance.rain);precipitation.material.color.setHex(appearance.particle);precipGeo.setDrawRange(0,700);}
  else if(type==='spawn'){if(!dynamic.has(data.id))entityVisual(data);}
  else if(type==='remove'){const g=dynamic.get(data.id);if(g)removeEntity(g);dynamic.delete(data.id);const trail=bulletTrails.get(data.id);if(trail){trail.released=true;trail.age=0;}}
@@ -360,11 +364,11 @@ function updateNetworkScreens(){
 }
 function enterNetwork(command){
  resetInput();accumulator=0;engine.phase='intro';engine.network=true;ownCelebrationUntil=0;networkRoom=null;networkMe=null;networkEventId=0;networkRaceId=0;networkInputSeq=0;
- hideOnlinePause();raceCountdown.reset();
+ hideOnlinePause();raceCountdown.reset();networkVisuals.reset();
  $('intro').classList.add('hidden');$('intro-footer').classList.add('hidden');$('hud').classList.add('hidden');$('finish').classList.add('hidden');networkClient.open(command);
 }
 function leaveRoom(){
- networkClient?.leave();multiplayerUI?.hide();networkRoom=null;networkMe=null;networkRaceId=0;networkEventId=0;ownCelebrationUntil=0;engine.network=false;
+ networkVisuals.reset();networkClient?.leave();multiplayerUI?.hide();networkRoom=null;networkMe=null;networkRaceId=0;networkEventId=0;ownCelebrationUntil=0;engine.network=false;
  $('game').classList.remove('multiplayer-observing');$('finish-banner').classList.add('hidden');
  const url=new URL(location.href);url.searchParams.delete('room');history.replaceState(null,'',url);
  selectCharacter(selectedCharacterId);returnToMenu();
@@ -374,9 +378,17 @@ function syncNetworkEntities(){
  for(const e of engine.entities){if(!dynamic.has(e.id))entityVisual(e);const trail=bulletTrails.get(e.id);if(trail)trail.e=e;}
  for(const [id,g] of [...dynamic])if(!ids.has(id)){removeEntity(g);dynamic.delete(id);const trail=bulletTrails.get(id);if(trail&&!trail.released){trail.released=true;trail.age=0;}}
 }
+function recordNetworkVisuals(state,now){
+ networkVisuals.setTime(state.elapsed,now);
+ for(const e of engine.entities)if(movingEntityKinds.has(e.kind))networkVisuals.record(e,e.position,state.elapsed,e.velocity,now);
+ for(const item of wildlife)networkVisuals.record(item,item.position,state.elapsed,undefined,now);
+ for(const item of skiers)networkVisuals.record(item,item.position,state.elapsed,undefined,now);
+ for(const h of hazards)if(h.kind==='bear'&&!h.destroyed)networkVisuals.record(h,worldPosition(h.x,h.s),state.elapsed,undefined,now);
+}
 function receiveNetworkState(state,reset=false){
  const p=localGoat(),before={...p.body.position},dead=p.dead,oldFinish=p.finishTime,oldWeather=engine.weatherIndex;
  applyState(engine,state);networkLastState=performance.now();engine.physicsHz=state.physicsHz||60;
+ if(reset)networkVisuals.reset();recordNetworkVisuals(state,networkLastState);
  for(const g of goats){const own=isLocal(g),dynamicBody=own&&!g.dead&&g.finishTime===null;g.body.type=dynamicBody?CANNON.Body.DYNAMIC:CANNON.Body.KINEMATIC;g.body.collisionFilterMask=dynamicBody?1:0;g.body.updateMassProperties();
   if(!own){const current=g.renderPosition||{...g.body.position};g.renderPosition=reset?{...g.body.position}:current;}
  }
@@ -458,7 +470,7 @@ function bodyForRender(g,dt=0){
 }
 let renderSlow=0,renderQuality=1.35,frameAverage=1/60;
 const rigYaw=new THREE.Quaternion(),upAxis=new THREE.Vector3(0,1,0);
-function render(dt){const p=viewGoat();
+function render(dt){const p=viewGoat(),online=networkClient?.active,visualNow=performance.now(),visualTime=online?Math.max(0,networkVisuals.time(engine.elapsed,visualNow)):engine.elapsed;
  frameAverage=frameAverage*.97+dt*.03;if(['racing','celebrating'].includes(engine.phase)){renderSlow=frameAverage>.031?renderSlow+dt:Math.max(0,renderSlow-dt);if(renderSlow>2&&renderQuality>1){renderQuality=1;renderer.setPixelRatio(Math.min(devicePixelRatio,1));renderer.shadowMap.enabled=false;renderSlow=0;}}
  for(const chunk of terrain.userData.chunks)chunk.visible=chunk.userData.endS>p.s-150&&chunk.userData.startS<p.s+520;
  for(const g of goats){
@@ -472,14 +484,14 @@ function render(dt){const p=viewGoat();
  for(const pickup of snowmobiles){pickup.visual.visible=!pickup.consumed&&pickup.s>p.s-60&&pickup.s<p.s+350;}
  for(const prop of props)prop.g.visible=prop.s>p.s-80&&prop.s<p.s+440&&!prop.hazard?.destroyed;
  treeBatch.userData.syncVisibility();
- for(const skier of skiers){const g=skier.visual,a=skier.position,s=-a.z;g.visible=!skier.consumed&&s>p.s-60&&s<p.s+440;g.position.set(a.x,a.y-skier.centerHeight+.18,a.z);const later=wildlifePosition(skier,engine.elapsed+.05),ahead=new THREE.Vector3(later.x-a.x,later.y-a.y,later.z-a.z);if(ahead.length()>30)ahead.set(0,-.53,-1);ahead.normalize();g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,themeCreatures?1:-1),ahead);}
- for(const animal of wildlife){const g=animal.visual;g.visible=!animal.consumed&&animal.s0>p.s-50&&animal.s0<p.s+280;if(!g.visible)continue;const a=animal.position,b=animal.previous;g.position.set(a.x,a.y-animal.centerHeight,a.z);const dx=a.x-b.x,dz=a.z-b.z;if(Math.hypot(dx,dz)>.00001)g.rotation.y=Math.atan2(-dx,-dz);else g.rotation.y=Math.cos(animal.phase)>=0?-Math.PI/2:Math.PI/2;for(const [i,leg] of g.userData.legs.entries())leg.rotation.x=Math.sin(engine.elapsed*animal.speed*7+i*Math.PI/2)*.5;g.userData.tail.rotation.z=Math.sin(engine.elapsed*7+animal.id)*.14;}
+ for(const skier of skiers){const g=skier.visual,a=online?networkVisuals.position(skier,skier.position,visualNow):skier.position,s=-a.z;g.visible=!skier.consumed&&s>p.s-60&&s<p.s+440;g.position.set(a.x,a.y-skier.centerHeight+.18,a.z);const later=wildlifePosition(skier,visualTime+.05),velocity=online&&networkVisuals.velocity(skier),ahead=velocity&&Math.hypot(velocity.x,velocity.y,velocity.z)>.001?new THREE.Vector3(velocity.x,velocity.y,velocity.z):new THREE.Vector3(later.x-a.x,later.y-a.y,later.z-a.z);if(ahead.length()>30&&!velocity)ahead.set(0,-.53,-1);ahead.normalize();g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,themeCreatures?1:-1),ahead);}
+ for(const animal of wildlife){const g=animal.visual;g.visible=!animal.consumed&&animal.s0>p.s-50&&animal.s0<p.s+280;if(!g.visible)continue;const a=online?networkVisuals.position(animal,animal.position,visualNow):animal.position,b=animal.previous,velocity=online&&networkVisuals.velocity(animal);g.position.set(a.x,a.y-animal.centerHeight,a.z);const dx=velocity?velocity.x:animal.position.x-b.x,dz=velocity?velocity.z:animal.position.z-b.z;if(Math.hypot(dx,dz)>.00001)g.rotation.y=Math.atan2(-dx,-dz);else g.rotation.y=Math.cos(animal.phase)>=0?-Math.PI/2:Math.PI/2;for(const [i,leg] of g.userData.legs.entries())leg.rotation.x=Math.sin(visualTime*animal.speed*7+i*Math.PI/2)*.5;g.userData.tail.rotation.z=Math.sin(visualTime*7+animal.id)*.14;}
 
- for(const h of hazards)if(h.kind==='bear'&&!h.destroyed){h.g.position.copy(worldPosition(h.x,h.s));h.g.rotation.y=Math.sin(attract+h.s)*.2;}
+ for(const h of hazards)if(h.kind==='bear'&&!h.destroyed){h.g.position.copy(online?networkVisuals.position(h,h.g.position,visualNow):worldPosition(h.x,h.s));h.g.rotation.y=Math.sin(attract+h.s)*.2;}
  for(const h of hazards)if(h.kind==='hunter'&&!h.destroyed){const target=goats.find(g=>g.id===h.targetId)||p;const dx=target.body.position.x-h.g.position.x,dz=target.body.position.z-h.g.position.z;h.g.rotation.y=Math.atan2(dx,dz);if(h.g.userData.weapon&&h.aim){const d=h.aim.velocity;h.g.userData.weapon.rotation.y=Math.atan2(d.x,d.z)-h.g.rotation.y;h.g.userData.weapon.rotation.x=-Math.atan2(d.y,Math.hypot(d.x,d.z));}}
  for(const h of hazards)if(h.kind==='gunner'){rideAssets.animateGun(h.g,engine.elapsed,engine.elapsed-(h.lastShot??-10)<.18);h.g.visible=Math.abs(h.s-p.s)<250;if(h.aim)h.g.userData.weapon.rotation.y=Math.max(-.6,Math.min(.6,Math.atan2(h.aim.velocity.x,h.aim.velocity.z)-(h.houseYaw||0)));h.g.userData.weapon.rotation.x=-Math.atan2(h.aim?.velocity.y||0,Math.hypot(h.aim?.velocity.x||0,h.aim?.velocity.z||1));}
  for(const {h,line} of aimLines){line.visible=!h.destroyed&&h.warning>0;if(line.visible&&h.aim){const points=[new THREE.Vector3(h.aim.from.x,h.aim.from.y,h.aim.from.z),new THREE.Vector3(h.aim.to.x,h.aim.to.y,h.aim.to.z)];line.geometry.setFromPoints(points);line.material.opacity=.35+Math.sin(attract*22)*.3;}}
- for(const e of engine.entities){const g=dynamic.get(e.id);if(!g)continue;g.position.set(e.position.x,e.position.y,e.position.z);if(e.body)g.quaternion.set(e.body.quaternion.x,e.body.quaternion.y,e.body.quaternion.z,e.body.quaternion.w);else if(e.velocity){const v=e.velocity;g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1),new THREE.Vector3(v.x,v.y||0,v.z).normalize());}if(e.kind==='yeti'){g.position.y-=2.2;g.rotation.y=Math.atan(derivative(-e.position.z));if(e.targetId!=null){const target=goats.find(a=>a.id===e.targetId);if(target)g.rotation.y=Math.atan2(target.body.position.x-e.position.x,target.body.position.z-e.position.z);}showAssets.animateYeti(g,engine.elapsed);g.visible=!e.destroyed;}if(e.kind==='trap'){showAssets.animateTrap(g,engine.elapsed,e.snap>0);}if(e.kind==='strike'){g.visible=!e.struck;g.scale.setScalar(.96+Math.sin(engine.elapsed*22)*.06);}}
+ for(const e of engine.entities){const g=dynamic.get(e.id);if(!g)continue;const a=online&&movingEntityKinds.has(e.kind)?networkVisuals.position(e,e.position,visualNow):e.position;g.position.set(a.x,a.y,a.z);if(e.body)g.quaternion.set(e.body.quaternion.x,e.body.quaternion.y,e.body.quaternion.z,e.body.quaternion.w);else if(e.velocity){const v=e.velocity;g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1),new THREE.Vector3(v.x,v.y||0,v.z).normalize());}if(e.kind==='yeti'){g.position.y-=2.2;g.rotation.y=Math.atan(derivative(-a.z));if(e.targetId!=null){const target=goats.find(goat=>goat.id===e.targetId);if(target)g.rotation.y=Math.atan2(target.body.position.x-a.x,target.body.position.z-a.z);}showAssets.animateYeti(g,visualTime);g.visible=!e.destroyed;}if(e.kind==='trap'){showAssets.animateTrap(g,visualTime,e.snap>0);}if(e.kind==='strike'){g.visible=!e.struck;g.scale.setScalar(.96+Math.sin(visualTime*22)*.06);}}
  const effectDt=engine.phase==='paused'?0:dt;
  if(themeScenery)themeScenery.updateBackdrop(backdrop,engine.elapsed,p.body.position);
  fragmentPool.update(effectDt);gameAudio.update(dt,{phase:engine.phase,weather:engine.weather,playerPosition:p.body.position,bears:hazards.filter(h=>h.kind==='bear')});

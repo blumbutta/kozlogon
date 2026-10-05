@@ -1,0 +1,51 @@
+{
+  "testedAt": "2026-10-05",
+  "baselineClientCommit": "2716980",
+  "baselineClientSha256": "fb06ad40187ddcc40cd588e2f290b7bb9abbcda6c1a620df914db65189fbf8e7",
+  "optimizedClientSha256": "b00b97e996cacdce49bfa316b97b51b38a458a0de989da3d2d91248aa40c3829",
+  "method": "Fresh Chromium contexts, 1280x800, deviceScaleFactor1, software SwiftShader graphics, 20 racers, first five rendered countdown frames. GL submissions include main scene and shadow passes. RAF was throttled equally in both versions.",
+  "limitations": "Draw counts are measured. Software render callback times did not show a consistent gain; these results do not establish actual iPhone FPS. Small submitted-triangle variation follows combined mesh frustum bounds; model triangle counts and silhouettes are unchanged.",
+  "modelMaterialDraws": {
+    "alps": {
+      "before": 167,
+      "after": 87
+    },
+    "hell": {
+      "before": 120,
+      "after": 80
+    },
+    "moon": {
+      "before": 80,
+      "after": 60
+    }
+  },
+  "fullSceneGlDrawSubmissions": {
+    "alps": {
+      "before": 749,
+      "after": 613
+    },
+    "hell": {
+      "before": 618,
+      "after": 554
+    },
+    "moon": {
+      "before": 544,
+      "after": 514
+    }
+  },
+  "fullSceneSubmittedTriangles": {
+    "alps": {
+      "before": 250659,
+      "after": 251094
+    },
+    "hell": {
+      "before": 404836,
+      "after": 404895
+    },
+    "moon": {
+      "before": 258618,
+      "after": 258618
+    }
+  },
+  "geometryValidation": "All 60 unique rolled models preserve vertex positions, normals, bounds, triangle counts, diffuse colors and mutable rage material references. Animated trick and ride rigs remain independent."
+}
