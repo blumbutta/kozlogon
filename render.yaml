@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: kozlogon-server
+    runtime: node
+    repo: https://github.com/blumbutta/kozlogon
+    branch: main
+    region: frankfurt
+    plan: 0.5c-512mb
+    buildCommand: node --check server/index.mjs
+    startCommand: npm run start:server
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
