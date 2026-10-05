@@ -9,7 +9,7 @@ import { playerEmoji } from '../src/player-emojis.js';
 const token=()=>randomBytes(18).toString('base64url');
 const MAX_PLAYERS=20, RECONNECT_MS=20_000, INPUT_STALE_MS=30_000;
 export const SERVER_PHYSICS_HZ=60, SNAPSHOT_HZ=15;
-export const DEFAULT_MAX_ACTIVE_RACES=2;
+export const DEFAULT_MAX_ACTIVE_RACES=1;
 const abilityKinds=new Set(['jump','bomb','trap','recover']);
 const clamp=(number,min,max)=>Math.max(min,Math.min(max,number));
 export function normalizeNickname(value,fallback='Рогач'){
