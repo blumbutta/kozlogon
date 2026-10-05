@@ -9,12 +9,40 @@ export function spikePits(){return getActiveWorld().id==='hell'?[]:SPIKE_PITS;}
 export function lavaFlows(){return getActiveWorld().id==='hell'?LAVA_FLOWS:[];}
 export const lavaPathX=(flow,s)=>flow.x+Math.sin((s-flow.s)*.11)*4;
 export function terrainHeight(x,s){let y=baseTerrainHeight(x,s);for(const pit of spikePits()){if(Math.abs(s-pit.s)>pit.r)continue;const d=Math.hypot(x-center(pit.s)-pit.x,s-pit.s);if(d<pit.r)y-=pit.depth*Math.pow(Math.cos(d/pit.r*Math.PI/2),2);}return y;}
-export function terrainData(){const data=[];for(let x=MIN_X;x<=MAX_X;x+=CELL){const row=[];for(let s=MIN_S;s<=MAX_S;s+=CELL)row.push(terrainHeight(x,s));data.push(row);}return data;}
+const GRID_COLS=(MAX_X-MIN_X)/CELL+1,GRID_ROWS=(MAX_S-MIN_S)/CELL+1;
+// Build only worlds that are actually used. There are three fixed world IDs,
+// so the immutable vertex caches occupy at most 1.8 MB in total.
+const terrainGrids=new Map();
+function groundGrid(){
+ const worldId=getActiveWorld().id;
+ let grid=terrainGrids.get(worldId);
+ if(!grid){
+  grid=new Float64Array(GRID_COLS*GRID_ROWS);
+  for(let ix=0;ix<GRID_COLS;ix++)for(let is=0;is<GRID_ROWS;is++)grid[ix*GRID_ROWS+is]=terrainHeight(MIN_X+ix*CELL,MIN_S+is*CELL);
+  terrainGrids.set(worldId,grid);
+ }
+ return grid;
+}
+export function terrainData(){
+ const grid=groundGrid(),data=[];
+ // Cannon exposes mutable heightfield data. Give every engine its own rows so
+ // a room cannot change the shared sampling cache or another room's surface.
+ for(let ix=0;ix<GRID_COLS;ix++)data.push(Array.from(grid.subarray(ix*GRID_ROWS,(ix+1)*GRID_ROWS)));
+ return data;
+}
 // Match the triangles used by both the rendered ground and Cannon heightfield.
 export function sampleGroundHeight(x,s){
  const ix=Math.floor((x-MIN_X)/CELL),is=Math.floor((s-MIN_S)/CELL);
  const x0=MIN_X+ix*CELL,s0=MIN_S+is*CELL,u=(x-x0)/CELL,v=(s-s0)/CELL;
- const a=terrainHeight(x0,s0),b=terrainHeight(x0+CELL,s0),c=terrainHeight(x0,s0+CELL),d=terrainHeight(x0+CELL,s0+CELL);
+ let a,b,c,d;
+ if(ix>=0&&ix<GRID_COLS-1&&is>=0&&is<GRID_ROWS-1){
+  const grid=groundGrid(),index=ix*GRID_ROWS+is;
+  a=grid[index];b=grid[index+GRID_ROWS];c=grid[index+1];d=grid[index+GRID_ROWS+1];
+ }else{
+  // Preserve procedural extrapolation beyond the rendered heightfield,
+  // including the last vertex where a neighbouring cell is outside the grid.
+  a=terrainHeight(x0,s0);b=terrainHeight(x0+CELL,s0);c=terrainHeight(x0,s0+CELL);d=terrainHeight(x0+CELL,s0+CELL);
+ }
  return u+v<=1?a+(b-a)*u+(c-a)*v:d+(c-d)*(1-u)+(b-d)*(1-v);
 }
 // Check the entire fixed-step movement, including fast snowmobile crossings.

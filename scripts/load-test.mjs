@@ -2,7 +2,8 @@ import WebSocket from 'ws';
 import { inflateSync } from 'node:zlib';
 import { monitorEventLoopDelay } from 'node:perf_hooks';
 
-// Run against an explicitly selected server: node scripts/load-test.mjs https://host 120 2
+// Run against an explicitly selected server: node scripts/load-test.mjs https://host 120 2 20
+// Last argument selects humans per room; the other slots remain bots.
 // The test creates private rooms and voluntarily leaves every connection.
 const target = process.argv[2];
 if (!target) throw new Error('Pass the server URL explicitly.');
@@ -12,6 +13,8 @@ const durationSeconds = Number(process.argv[3] || 120);
 if (!Number.isFinite(durationSeconds) || durationSeconds < 20 || durationSeconds > 300) throw new Error('Duration must be 20–300 seconds.');
 const roomsCount = Number(process.argv[4] || 2);
 if (![1, 2].includes(roomsCount)) throw new Error('Rooms count must be 1 or 2.');
+const humansPerRoom = Number(process.argv[5] || 20);
+if (!Number.isInteger(humansPerRoom) || humansPerRoom < 1 || humansPerRoom > 20) throw new Error('Human players per room must be 1–20.');
 const warmupSeconds = Math.min(15, durationSeconds / 4);
 const socketUrl = new URL('/ws', serverUrl);
 socketUrl.protocol = serverUrl.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -104,7 +107,7 @@ function roomSummary(room) {
   }
   const state = room.latest;
   return {
-    world: room.worldId, players: 20, spectators: 1,
+    world: room.worldId, players: humansPerRoom, bots: 20-humansPerRoom, spectators: 1,
     phase: state?.phase, elapsed: state?.elapsed,
     ...intervalSummary(measurement),
     pingMeanMs: round(mean(latency), 0), pingP95Ms: round(percentile(latency, .95), 0),
@@ -112,7 +115,7 @@ function roomSummary(room) {
     bytesAllClients: room.clients.reduce((sum, client) => sum + client.bytes, 0),
     humanCount: state?.goats.filter(goat => !goat.isBot).length,
     uniquePlayerIds: new Set(room.clients.filter(client => client.welcome?.role === 'player').map(client => client.welcome.playerId)).size,
-    acceptedInputsMinimum: state ? Math.min(...state.goats.map(goat => goat.lastInputSeq || 0)) : null,
+    acceptedInputsMinimum: state ? Math.min(...state.goats.filter(goat=>!goat.isBot).map(goat => goat.lastInputSeq || 0)) : null,
     furthestDistance: state ? round(Math.max(...state.goats.map(goat => goat.s)), 0) : null,
     finished: state?.goats.filter(goat => goat.finishTime !== null).length,
     deaths: state?.goats.reduce((sum, goat) => sum + goat.stats.deaths, 0),
@@ -144,20 +147,27 @@ try {
     const room = { worldId, clients: [], samples: [], latest: null, events: {}, phase: 'lobby' };
     rooms.push(room);
     room.host = await connect(room, { type: 'create', worldId, nickname: `Тест ${worldId} 1` }, true);
-    for (let first = 1; first < 20; first += 4) {
-      await Promise.all(Array.from({ length: Math.min(4, 20 - first) }, (_, offset) => connect(room, {
+    for (let first = 1; first < humansPerRoom; first += 4) {
+      await Promise.all(Array.from({ length: Math.min(4, humansPerRoom - first) }, (_, offset) => connect(room, {
         type: 'join', roomId: room.host.welcome.roomId, nickname: `Тест ${worldId} ${first + offset + 1}`,
       })));
     }
     const playerIds = room.clients.map(client => client.welcome.playerId).sort((a, b) => a - b);
     if (playerIds.some((id, index) => id !== index)) throw new Error('duplicate_or_missing_player_slot');
-    const spectator = await connect(room, { type: 'join', roomId: room.host.welcome.roomId, nickname: `Зритель ${worldId}` });
-    if (spectator.welcome.role !== 'spectator') throw new Error('full_room_observer_failed');
   }
   startedAt = performance.now();
   eventLoop.reset();
   for (const room of rooms) send(room.host, { type: 'start' });
-  log({ status: 'testing', rooms: roomsCount, players: roomsCount * 20, spectators: roomsCount, durationSeconds, warmupSeconds });
+  // Join after start so an observer never occupies a vacant human slot.
+  for (const room of rooms) {
+    await new Promise((resolve,reject)=>{const deadline=performance.now()+15_000,timer=setInterval(()=>{
+      if(errors.length||performance.now()>deadline){clearInterval(timer);reject(new Error('races_failed_to_start'));}
+      else if(['countdown','racing'].includes(room.latest?.phase)){clearInterval(timer);resolve();}
+    },50);});
+    const spectator = await connect(room, { type: 'join', roomId: room.host.welcome.roomId, nickname: `Зритель ${worldId}` });
+    if (spectator.welcome.role !== 'spectator') throw new Error('late_observer_failed');
+  }
+  log({ status: 'testing', rooms: roomsCount, players: roomsCount * humansPerRoom, bots: roomsCount*(20-humansPerRoom), spectators: roomsCount, durationSeconds, warmupSeconds });
   inputTimer = setInterval(() => {
     const wall = nowSeconds();
     for (const client of clients) {
@@ -205,7 +215,7 @@ try {
   await new Promise(resolve => setTimeout(resolve, durationSeconds * 1000));
   const summaries = rooms.map(roomSummary);
   const measurementHealth = healthSamples.filter(sample => sample.wall >= warmupSeconds);
-  const allRacing = summaries.every(summary => summary.phase === 'racing' && summary.humanCount === 20 && summary.uniquePlayerIds === 20 && summary.acceptedInputsMinimum > 100);
+  const allRacing = summaries.every(summary => summary.phase === 'racing' && summary.humanCount === humansPerRoom && summary.uniquePlayerIds === humansPerRoom && summary.acceptedInputsMinimum > 100);
   const cpu = process.cpuUsage(cpuStart);
   const status = errors.length || !allRacing ? 'failed' : summaries.every(summary => summary.simulationElapsedRatio >= .98 && summary.windows.every(window => window.simulationElapsedRatio >= .96) && summary.pingP95Ms < 400 && summary.maximumSnapshotGapMs < 1000) ? 'stable' : summaries.every(summary => summary.simulationElapsedRatio >= .9) ? 'borderline' : 'unusable';
   log({

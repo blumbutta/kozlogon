@@ -1,5 +1,6 @@
 import { CHARACTERS } from './racers.js';
 import { resolveWorld } from './worlds.js';
+import { playerEmoji } from './player-emojis.js';
 
 const speciesIcons = { goat: '🐐', cow: '🐄', deer: '🦌', moose: '🫎' };
 const el = (tag, className, text) => {
@@ -9,7 +10,7 @@ const el = (tag, className, text) => {
   return node;
 };
 const characterFor = id => CHARACTERS.find(character => character.id === id) || CHARACTERS[0];
-const racerName = racer => `${racer.isBot ? '🤖 ' : ''}${racer.nickname || characterFor(racer.characterId).name}`;
+const racerName = racer => `${racer.isBot ? '🤖' : playerEmoji(racer.id)} ${racer.nickname || characterFor(racer.characterId).name}`;
 const randomName = () => CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)].name;
 const clock = seconds => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 const countWord = (count, one, few, many) => count % 100 >= 11 && count % 100 <= 14 ? many : count % 10 === 1 ? one : count % 10 >= 2 && count % 10 <= 4 ? few : many;

@@ -191,6 +191,14 @@ export function createGameAudio(){
   const p={jump:[420,.16,'triangle'],boost:[640,.25,'triangle'],trap:[180,.18,'square'],bomb:[260,.14,'triangle'],countdown:[370,.12,'sine'],go:[700,.30,'triangle'],score:[900,.12,'sine'],death:[110,.35,'sawtooth'],bounce:[290,.13,'triangle'],lightning:[65,.70,'sawtooth']}[kind]||[480,.12,'sine'];
   const v=voice('effect',p[1],1);if(!v)return false;oscillator(v,p[2],p[0],envelope(v,.07,p[1]),p[1],p[0]*.65);return true;
  }
+ function raceCountdown(seconds){
+  const count=Math.max(0,Math.ceil(Number(seconds)||0)),go=count===0;
+  const frequency=go?1568:count<=3?[0,1319,1175,1047][count]:784,duration=go?.65:count<=3?.18:.10;
+  const v=voice('effect',duration,1);if(!v)return false;
+  oscillator(v,go?'triangle':'sine',frequency,envelope(v,go?.17:.13,duration,.004),duration,go?2093:frequency);
+  if(go)oscillator(v,'sine',784,envelope(v,.08,.48,.005),.5,1047);
+  return true;
+ }
  function update(dt,state={}){
   const wasPaused=phase==='paused';phase=state.phase||phase;
   if(state.playerPosition)listener={x:state.playerPosition.x||0,y:state.playerPosition.y||0,z:state.playerPosition.z||0};
@@ -216,5 +224,5 @@ export function createGameAudio(){
  }
  function reset(){clear();musicBeat=0;musicRemaining=0;clock=0;finishUntil=-1;bearTimes.clear();phase='intro';if(ambient){param(ambient.rain.gain,0);param(ambient.brown.gain,0);}}
  function preview(def){clear('animal');return animal(def,.2);}
- return {enable,update,animal,preview,shot,growl,explosion,cluster,finish,cue,reset,get enabled(){return enabled;}};
+ return {enable,update,animal,preview,shot,growl,explosion,cluster,finish,cue,raceCountdown,reset,get enabled(){return enabled;}};
 }

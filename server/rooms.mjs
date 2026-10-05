@@ -4,11 +4,12 @@ import { CHARACTERS } from '../src/racers.js';
 import { resolveWorld } from '../src/worlds.js';
 import { worldCharacters } from '../src/world-presentation.js';
 import { serializeEvent, serializeState } from '../src/network-state.js';
+import { playerEmoji } from '../src/player-emojis.js';
 
 const token=()=>randomBytes(18).toString('base64url');
 const MAX_PLAYERS=20, RECONNECT_MS=20_000, INPUT_STALE_MS=30_000;
 export const SERVER_PHYSICS_HZ=60, SNAPSHOT_HZ=15;
-export const DEFAULT_MAX_ACTIVE_RACES=1;
+export const DEFAULT_MAX_ACTIVE_RACES=2;
 const abilityKinds=new Set(['jump','bomb','trap','recover']);
 const clamp=(number,min,max)=>Math.max(min,Math.min(max,number));
 export function normalizeNickname(value,fallback='Рогач'){
@@ -25,7 +26,7 @@ export class RaceRoom {
  constructor(manager,connection,payload={}){
   this.manager=manager;this.id=token();this.worldId=resolveWorld(payload.worldId).id;
   this.phase='lobby';this.createdAt=manager.now();this.lastActiveAt=this.createdAt;this.raceId=0;this.tick=0;this.eventSerial=0;
-  this.startAt=null;this.finishAt=null;this.engine=null;this.accumulator=0;this.snapshotAccumulator=0;this.members=new Map();this.hostId=null;
+  this.startAt=null;this.finishAt=null;this.engine=null;this.accumulator=0;this.snapshotAccumulator=0;this.members=new Map();this.playersBySlot=new Map();this.inputs=new Map();this.hostId=null;
   this.characters=worldCharacters(CHARACTERS,resolveWorld(this.worldId));
   this.racers=this.characters.map((character,id)=>({id,characterId:character.id,nickname:character.name,name:'🤖 '+character.name,isBot:true,controller:'bot',color:character.color,character}));
   this.join(connection,payload,true);
@@ -41,18 +42,20 @@ export class RaceRoom {
   if(this.members.size>=52)fail('room_full','В этой комнате уже слишком много наблюдателей.');
   const slot=this.phase==='lobby'?this.racers.find(racer=>!this.memberForSlot(racer.id)):null;
   const member={id:token(),reconnectToken:token(),playerId:slot?.id??null,role:slot?'player':'spectator',nickname:normalizeNickname(payload.nickname,this.randomName()),connection,disconnectedAt:null,lastInputAt:this.manager.now(),input:{seq:-1,steer:0,drive:0},lastAbilityAt:0};
-  if(slot){if(payload.characterId)this.selectCharacter(member,payload.characterId);slot.isBot=false;slot.controller='human';slot.nickname=member.nickname;slot.name=member.nickname;}
-  this.members.set(member.id,member);connection.member=member;connection.room=this;
+  if(slot){if(payload.characterId)this.selectCharacter(member,payload.characterId);slot.isBot=false;slot.controller='human';slot.nickname=member.nickname;slot.name=playerEmoji(slot.id)+' '+member.nickname;}
+  this.members.set(member.id,member);if(slot)this.playersBySlot.set(slot.id,member);connection.member=member;connection.room=this;
   if(creator||!this.hostId)this.hostId=member.id;
   this.transferHost();
   this.lastActiveAt=this.manager.now();this.welcome(member);this.updateCountdown();this.broadcastRoom();if(this.engine)this.sendState(connection);return member;
  }
  randomName(){return this.characters[randomBytes(1)[0]%this.characters.length].name;}
- memberForSlot(playerId){return [...this.members.values()].find(member=>member.role==='player'&&member.playerId===playerId);}
+ memberForSlot(playerId){return this.playersBySlot.get(playerId);}
  welcome(member){safeSend(member.connection,{type:'welcome',roomId:this.id,worldId:this.worldId,memberId:member.id,playerId:member.playerId,role:member.role,nickname:member.nickname,reconnectToken:member.reconnectToken,serverTime:this.manager.now()});}
  describe(){return {roomId:this.id,worldId:this.worldId,phase:this.phase,hostId:this.hostId,startAt:this.startAt,finishAt:this.finishAt,raceId:this.raceId,physicsHz:SERVER_PHYSICS_HZ,serverTime:this.manager.now(),members:[...this.members.values()].map(member=>({id:member.id,playerId:member.playerId,role:member.role,nickname:member.nickname,connected:Boolean(member.connection)})),racers:this.racers.map(racer=>({id:racer.id,characterId:racer.characterId,nickname:racer.nickname,name:racer.name,isBot:racer.isBot,color:racer.color}))};}
  broadcast(message){
-  const connections=[...this.members.values()].map(member=>member.connection).filter(Boolean),encoded=JSON.stringify(message);
+  const connections=[];for(const member of this.members.values())if(member.connection)connections.push(member.connection);
+  if(!connections.length)return;
+  const encoded=JSON.stringify(message);
   const compressed=['state','raceStart'].includes(message.type)&&connections.some(connection=>connection.compression&&connection.sendPacket)?deflateSync(encoded,{level:1}):null;
   for(const connection of connections)encodedSend(connection,message,encoded,compressed);
  }
@@ -77,7 +80,7 @@ export class RaceRoom {
    case 'select':
     if(this.phase!=='lobby'||member.role!=='player')fail('not_in_lobby','Персонажа можно выбрать перед стартом.');
     if(payload.characterId)this.selectCharacter(member,payload.characterId);
-    if(payload.nickname!==undefined){member.nickname=normalizeNickname(payload.nickname,member.nickname);const racer=this.racers[member.playerId];racer.nickname=member.nickname;racer.name=member.nickname;}
+    if(payload.nickname!==undefined){member.nickname=normalizeNickname(payload.nickname,member.nickname);const racer=this.racers[member.playerId];racer.nickname=member.nickname;racer.name=playerEmoji(racer.id)+' '+member.nickname;}
     this.broadcastRoom();break;
    case 'start':
     this.requireHost(member);if(this.phase!=='lobby')fail('already_started','Заезд уже начался.');this.start();break;
@@ -100,7 +103,7 @@ export class RaceRoom {
  requireHost(member){if(member.id!==this.hostId)fail('host_only','Начать или перезапустить заезд может создатель комнаты.');}
  start(){
   if(this.manager.activeRaces()>=this.manager.maxActiveRaces)fail('server_busy','Сейчас идут другие заезды. Попробуй начать чуть позже.');
-  this.startAt=null;this.finishAt=null;this.raceId++;this.tick=0;this.eventSerial=0;this.accumulator=0;this.snapshotAccumulator=0;
+  this.startAt=null;this.finishAt=null;this.raceId++;this.tick=0;this.eventSerial=0;this.accumulator=0;this.snapshotAccumulator=0;this.inputs.clear();
   const events=[];
   this.engine=this.manager.withWorld(this.worldId,()=>this.manager.engineFactory(this.worldId,this.racers,(type,data)=>events.push({type,data})));
   this.engine.physicsHz=SERVER_PHYSICS_HZ;
@@ -116,10 +119,10 @@ export class RaceRoom {
   const event={id:++this.eventSerial,...serializeEvent(type,data,this.engine)};
   this.broadcast({type:'event',raceId:this.raceId,tick:this.tick,event});
  }
- sendState(connection=null){if(!this.engine)return;const message={type:'state',raceId:this.raceId,tick:this.tick,serverTime:this.manager.now(),finishAt:this.finishAt,state:serializeState(this.engine)};if(connection){const encoded=JSON.stringify(message);encodedSend(connection,message,encoded,connection.compression?deflateSync(encoded,{level:1}):null);}else this.broadcast(message);}
+ sendState(connection=null){if(!this.engine)return;if(!connection){let connected=false;for(const member of this.members.values())if(member.connection){connected=true;break;}if(!connected)return;}const message={type:'state',raceId:this.raceId,tick:this.tick,serverTime:this.manager.now(),finishAt:this.finishAt,state:serializeState(this.engine)};if(connection){const encoded=JSON.stringify(message);encodedSend(connection,message,encoded,connection.compression?deflateSync(encoded,{level:1}):null);}else this.broadcast(message);}
  advance(dt){
   const now=this.manager.now();
-  for(const member of [...this.members.values()])if(!member.connection&&member.disconnectedAt+RECONNECT_MS<now)this.removeMember(member);
+  for(const member of this.members.values())if(!member.connection&&member.disconnectedAt+RECONNECT_MS<now)this.removeMember(member);
   if(this.phase==='lobby'){
    this.updateCountdown();if(this.startAt!==null&&now>=this.startAt){try{this.start();}catch(error){this.startAt=now+10_000;this.broadcast({type:'error',code:error.code||'start_failed',message:error.message});this.broadcastRoom();}}
    return;
@@ -128,7 +131,7 @@ export class RaceRoom {
   this.accumulator+=Math.min(.25,Math.max(0,dt));
   while(this.accumulator>=1/SERVER_PHYSICS_HZ){
    this.accumulator-=1/SERVER_PHYSICS_HZ;this.tick++;
-   const inputs=new Map();
+   const inputs=this.inputs;
    for(const racer of this.engine.goats){const member=this.memberForSlot(racer.id);racer.isBot=!member||!member.connection||now-member.lastInputAt>INPUT_STALE_MS;racer.controller=racer.isBot?'bot':'human';if(member)inputs.set(racer.id,member.input);}
    this.manager.withWorld(this.worldId,()=>this.engine.step(1/SERVER_PHYSICS_HZ,0,0,inputs));
    if(this.engine.phase==='racing'&&this.phase==='countdown'){this.phase='racing';this.broadcastRoom();}
@@ -142,9 +145,9 @@ export class RaceRoom {
  }
  returnLobby(){
   this.engine=null;this.phase='lobby';this.finishAt=null;this.startAt=null;this.tick=0;
-  for(const member of [...this.members.values()])if(!member.connection)this.removeMember(member);
-  for(const member of this.members.values())if(member.role==='spectator'){const free=this.racers.find(racer=>!this.memberForSlot(racer.id));if(!free)break;member.role='player';member.playerId=free.id;free.isBot=false;free.controller='human';free.name=member.nickname;free.nickname=member.nickname;this.welcome(member);}
-  for(const racer of this.racers){const member=this.memberForSlot(racer.id);racer.isBot=!member;racer.controller=member?'human':'bot';racer.name=member?member.nickname:'🤖 '+racer.character.name;racer.nickname=member?member.nickname:racer.character.name;}
+  for(const member of this.members.values())if(!member.connection)this.removeMember(member);
+  for(const member of this.members.values())if(member.role==='spectator'){const free=this.racers.find(racer=>!this.memberForSlot(racer.id));if(!free)break;member.role='player';member.playerId=free.id;this.playersBySlot.set(free.id,member);free.isBot=false;free.controller='human';free.name=playerEmoji(free.id)+' '+member.nickname;free.nickname=member.nickname;this.welcome(member);}
+  for(const racer of this.racers){const member=this.memberForSlot(racer.id);racer.isBot=!member;racer.controller=member?'human':'bot';racer.name=member?playerEmoji(racer.id)+' '+member.nickname:'🤖 '+racer.character.name;racer.nickname=member?member.nickname:racer.character.name;}
   this.updateCountdown();this.broadcast({type:'lobbyReset',raceId:this.raceId});this.broadcastRoom();
  }
  disconnect(connection,voluntary=false){
@@ -156,7 +159,7 @@ export class RaceRoom {
  }
  transferHost(){if(this.members.get(this.hostId)?.connection)return;const next=this.onlinePlayers()[0]||[...this.members.values()].find(member=>member.connection);if(next)this.hostId=next.id;}
  removeMember(member){
-  this.members.delete(member.id);if(member.role==='player'){const racer=this.racers[member.playerId];Object.assign(racer,{isBot:true,controller:'bot',nickname:racer.character.name,name:'🤖 '+racer.character.name});if(this.engine)Object.assign(this.engine.goats[member.playerId],{isBot:true,name:racer.name,nickname:racer.nickname});}
+  this.members.delete(member.id);if(member.role==='player'){if(this.playersBySlot.get(member.playerId)===member)this.playersBySlot.delete(member.playerId);this.inputs.delete(member.playerId);const racer=this.racers[member.playerId];Object.assign(racer,{isBot:true,controller:'bot',nickname:racer.character.name,name:'🤖 '+racer.character.name});if(this.engine)Object.assign(this.engine.goats[member.playerId],{isBot:true,name:racer.name,nickname:racer.nickname});}
   this.transferHost();this.updateCountdown();this.broadcastRoom();
  }
 }
