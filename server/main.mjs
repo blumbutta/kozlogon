@@ -4,12 +4,16 @@ import { RaceEngine } from '../src/physics.js';
 import { createNetworkWorld } from '../src/network-world.js';
 import { withWorld } from '../src/worlds.js';
 import { RoomManager, SERVER_PHYSICS_HZ, DEFAULT_MAX_ACTIVE_RACES } from './rooms.mjs';
+import { CubeRoomManager, CUBE_HZ } from './cube/rooms.mjs';
+import { createCubeTransport } from './cube/socket.mjs';
 
 const port=Number(process.env.PORT||10000);
 if(!Number.isInteger(port)||port<1||port>65535)throw new Error('PORT must be an integer between 1 and 65535');
 const boundedEnv=(name,fallback,max)=>{const value=Number(process.env[name]||fallback);return Number.isInteger(value)&&value>0&&value<=max?value:fallback;};
 const allowedOrigins=new Set((process.env.ALLOWED_ORIGINS||'https://blumbutta.github.io').split(',').map(value=>value.trim()).filter(Boolean));
 const originAllowed=origin=>!origin||allowedOrigins.has(origin)||/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+const cubeManager=new CubeRoomManager({maxRooms:4,maxActiveRooms:1});
+const cubeTransport=createCubeTransport({manager:cubeManager,originAllowed});
 const manager=new RoomManager({
  maxRooms:boundedEnv('MAX_ROOMS',4,32),maxActiveRaces:boundedEnv('MAX_ACTIVE_RACES',DEFAULT_MAX_ACTIVE_RACES,8),withWorld,
  engineFactory(worldId,racers,event){
@@ -25,13 +29,15 @@ const server=createServer((request,response)=>{
  if(!['GET','HEAD'].includes(request.method)){response.setHeader('Allow','GET, HEAD');send(405,{error:'Method not allowed'});return;}
  const path=request.url.split('?')[0];
  if(path==='/health')send(200,{ok:true});
- else if(path==='/')send(200,{service:'kozlogon-server',status:'online',multiplayerReady:true,maxActiveRaces:manager.maxActiveRaces,maxRooms:manager.maxRooms,physicsHz:SERVER_PHYSICS_HZ,gameUrl:'https://blumbutta.github.io/kozlogon/'});
+ else if(path==='/cube-health')send(200,{ok:true,game:'cube-bomber',websocketPath:'/cube-ws',maxPlayers:6,maxRooms:cubeManager.maxRooms,maxActiveRooms:cubeManager.maxActiveRooms,simulationHz:CUBE_HZ});
+ else if(path==='/')send(200,{service:'kozlogon-server',status:'online',multiplayerReady:true,maxActiveRaces:manager.maxActiveRaces,maxRooms:manager.maxRooms,physicsHz:SERVER_PHYSICS_HZ,gameUrl:'https://blumbutta.github.io/kozlogon/',cube:{ready:true,websocketPath:'/cube-ws',maxPlayers:6,maxRooms:cubeManager.maxRooms,maxActiveRooms:cubeManager.maxActiveRooms,simulationHz:CUBE_HZ}});
  else send(404,{error:'Not found'});
 });
 const sockets=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});
 const connectionsByIp=new Map();
 server.on('upgrade',(request,socket,head)=>{
  const path=request.url.split('?')[0],origin=request.headers.origin;
+ if(path==='/cube-ws'){cubeTransport.handleUpgrade(request,socket,head);return;}
  // The forwarded address is supplied by Render's reverse proxy.
  const ip=String(request.headers['x-forwarded-for']||request.socket.remoteAddress||'unknown').split(',')[0].trim();
  if(path!=='/ws'||!originAllowed(origin)||(connectionsByIp.get(ip)||0)>=48){socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');socket.destroy();return;}
@@ -52,11 +58,12 @@ sockets.on('connection',ws=>{
  ws.on('close',()=>{manager.disconnect(connection);const count=(connectionsByIp.get(ip)||1)-1;if(count>0)connectionsByIp.set(ip,count);else connectionsByIp.delete(ip);});
 });
 const simulation=setInterval(()=>manager.advance(),1000/SERVER_PHYSICS_HZ);
+const cubeSimulation=setInterval(()=>cubeManager.advance(),1000/CUBE_HZ);
 const heartbeat=setInterval(()=>{for(const ws of sockets.clients){if(!ws.isAlive){ws.terminate();continue;}ws.isAlive=false;ws.ping();}},10_000);heartbeat.unref();
 server.listen(port,'0.0.0.0',()=>console.log(`Kozlogon multiplayer server listening on port ${port}`));
 let closing=false;
 function shutdown(){
- if(closing)return;closing=true;clearInterval(simulation);clearInterval(heartbeat);manager.shutdown();
+ if(closing)return;closing=true;clearInterval(simulation);clearInterval(cubeSimulation);clearInterval(heartbeat);manager.shutdown();cubeTransport.close();
  for(const ws of sockets.clients)ws.close(1012,'Server restarting');
  const timeout=setTimeout(()=>{for(const ws of sockets.clients)ws.terminate();server.closeAllConnections();process.exit(1);},5000);timeout.unref();
  sockets.close();server.close(()=>{clearTimeout(timeout);process.exitCode=0;});
