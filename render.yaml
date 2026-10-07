@@ -10,6 +10,12 @@ services:
     startCommand: npm run start:server
     healthCheckPath: /health
     autoDeployTrigger: commit
+    disk:
+      name: integrals-data
+      mountPath: /var/data/integrals
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
+      - key: INTEGRALS_DB_PATH
+        value: /var/data/integrals/game.sqlite

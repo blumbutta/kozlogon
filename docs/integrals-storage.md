@@ -47,3 +47,5 @@ INTEGRALS_DB_PATH="$PWD/local-integrals.sqlite" npm run start:server
 ```
 
 Не добавляй `*.sqlite`, `*.sqlite-wal` и `*.sqlite-shm` в Git. Для регрессии общего сервера: `node --test tests/shared-server.test.mjs`. Тест запускает готовый `server/index.mjs` на свободном локальном порту и проверяет прежние HTTP/WebSocket-маршруты, лимиты комнат и подключений, отказ API без диска и сохранение профиля после перезапуска.
+
+The owner approved the 1 GB disk ($0.25/month) on 2026-10-07. The repository render.yaml declares this disk and INTEGRALS_DB_PATH. A manually created Render service still needs the disk and variable applied in its dashboard; the manifest alone is not proof that the disk is attached.
