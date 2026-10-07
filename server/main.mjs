@@ -6,12 +6,14 @@ import { withWorld } from '../src/worlds.js';
 import { RoomManager, SERVER_PHYSICS_HZ, DEFAULT_MAX_ACTIVE_RACES } from './rooms.mjs';
 import { CubeRoomManager, CUBE_HZ } from './cube/rooms.mjs';
 import { createCubeTransport } from './cube/socket.mjs';
+import { createIntegralsHandler } from './integrals/server/router.mjs';
 
 const port=Number(process.env.PORT||10000);
 if(!Number.isInteger(port)||port<1||port>65535)throw new Error('PORT must be an integer between 1 and 65535');
 const boundedEnv=(name,fallback,max)=>{const value=Number(process.env[name]||fallback);return Number.isInteger(value)&&value>0&&value<=max?value:fallback;};
 const allowedOrigins=new Set((process.env.ALLOWED_ORIGINS||'https://blumbutta.github.io').split(',').map(value=>value.trim()).filter(Boolean));
 const originAllowed=origin=>!origin||allowedOrigins.has(origin)||/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+const integrals=createIntegralsHandler({dbPath:process.env.INTEGRALS_DB_PATH,originAllowed});
 const cubeManager=new CubeRoomManager({maxRooms:4,maxActiveRooms:1});
 const cubeTransport=createCubeTransport({manager:cubeManager,originAllowed});
 const manager=new RoomManager({
@@ -25,12 +27,13 @@ const manager=new RoomManager({
 const server=createServer((request,response)=>{
  response.setHeader('Content-Type','application/json; charset=utf-8');response.setHeader('Cache-Control','no-store');
  if(request.headers.origin&&originAllowed(request.headers.origin)){response.setHeader('Access-Control-Allow-Origin',request.headers.origin);response.setHeader('Vary','Origin');}
+ if(integrals.handle(request,response))return;
  const send=(status,body)=>{response.writeHead(status);response.end(request.method==='HEAD'?undefined:JSON.stringify(body));};
  if(!['GET','HEAD'].includes(request.method)){response.setHeader('Allow','GET, HEAD');send(405,{error:'Method not allowed'});return;}
  const path=request.url.split('?')[0];
  if(path==='/health')send(200,{ok:true});
  else if(path==='/cube-health')send(200,{ok:true,game:'cube-bomber',websocketPath:'/cube-ws',maxPlayers:6,maxRooms:cubeManager.maxRooms,maxActiveRooms:cubeManager.maxActiveRooms,simulationHz:CUBE_HZ});
- else if(path==='/')send(200,{service:'kozlogon-server',status:'online',multiplayerReady:true,maxActiveRaces:manager.maxActiveRaces,maxRooms:manager.maxRooms,physicsHz:SERVER_PHYSICS_HZ,gameUrl:'https://blumbutta.github.io/kozlogon/',cube:{ready:true,websocketPath:'/cube-ws',maxPlayers:6,maxRooms:cubeManager.maxRooms,maxActiveRooms:cubeManager.maxActiveRooms,simulationHz:CUBE_HZ}});
+ else if(path==='/')send(200,{service:'kozlogon-server',status:'online',multiplayerReady:true,maxActiveRaces:manager.maxActiveRaces,maxRooms:manager.maxRooms,physicsHz:SERVER_PHYSICS_HZ,gameUrl:'https://blumbutta.github.io/kozlogon/',cube:{ready:true,websocketPath:'/cube-ws',maxPlayers:6,maxRooms:cubeManager.maxRooms,maxActiveRooms:cubeManager.maxActiveRooms,simulationHz:CUBE_HZ},integrals:{gameUrl:'https://blumbutta.github.io/integrals-remake/',apiPath:'/integrals-api',healthPath:'/integrals-api/health'}});
  else send(404,{error:'Not found'});
 });
 const sockets=new WebSocketServer({noServer:true,maxPayload:4096,perMessageDeflate:false});
@@ -66,6 +69,6 @@ function shutdown(){
  if(closing)return;closing=true;clearInterval(simulation);clearInterval(cubeSimulation);clearInterval(heartbeat);manager.shutdown();cubeTransport.close();
  for(const ws of sockets.clients)ws.close(1012,'Server restarting');
  const timeout=setTimeout(()=>{for(const ws of sockets.clients)ws.terminate();server.closeAllConnections();process.exit(1);},5000);timeout.unref();
- sockets.close();server.close(()=>{clearTimeout(timeout);process.exitCode=0;});
+ sockets.close();server.close(()=>{clearTimeout(timeout);try{integrals.close();process.exitCode=0;}catch{console.error('Integrals storage could not close cleanly.');process.exitCode=1;}});
 }
 process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
