@@ -116,9 +116,13 @@ test('shared bundled server handles Integrals writes before GET guard and persis
  t.after(async()=>{await server?.stop();await rm(directory,{recursive:true,force:true});});
  const dbPath=join(directory,'game.sqlite');server=await startServer(t,dbPath);
  let response=await fetch(server.url+'/integrals-api/health');assert.equal(response.status,200);
+ const capabilities=await response.json();assert.equal(capabilities.profileNames,'unique-required');assert.equal(capabilities.economyVersion,2);
  const headers={Origin:origin,'Content-Type':'application/json'};
  response=await fetch(server.url+'/integrals-api/players',{method:'POST',headers,body:JSON.stringify({nickname:'Persistence check',emoji:'🧪'})});assert.equal(response.status,201);
  const created=await response.json();assert.ok(created.token);headers.Authorization='Bearer '+created.token;
+ assert.equal(created.player.economyVersion,2);
+ response=await fetch(server.url+'/integrals-api/players',{method:'POST',headers,body:'{}'});assert.equal(response.status,400);assert.equal((await response.json()).error.code,'invalid_nickname');
+ response=await fetch(server.url+'/integrals-api/players',{method:'POST',headers,body:JSON.stringify({nickname:'  PERSISTENCE   CHECK  '})});assert.equal(response.status,409);assert.equal((await response.json()).error.code,'nickname_taken');
  assert.equal(created.player.emoji,'🧪');assert.equal(created.player.generators.length,11);assert.equal(created.player.generatorPrices[10],10_000_000_000_000);
  response=await fetch(server.url+'/integrals-api/action',{method:'POST',headers,body:JSON.stringify({id:`${Date.now()}-${randomUUID()}`,type:'click',amount:1})});assert.equal(response.status,200);
  const clicked=(await response.json()).player,earned=clicked.totalEarned;assert.ok(earned>0);assert.ok(clicked.revision>created.player.revision);
@@ -126,7 +130,7 @@ test('shared bundled server handles Integrals writes before GET guard and persis
  const updated=(await response.json()).player;assert.ok(updated.revision>clicked.revision);
  await server.stop();server=await startServer(t,dbPath);
  response=await fetch(server.url+'/integrals-api/state',{headers});assert.equal(response.status,200);const restored=(await response.json()).player;
- assert.equal(restored.id,created.player.id);assert.equal(restored.nickname,'Saved researcher');assert.equal(restored.emoji,'🚀');assert.equal(restored.totalEarned,earned);assert.equal(restored.generators.length,11);
+ assert.equal(restored.economyVersion,2);assert.equal(restored.id,created.player.id);assert.equal(restored.nickname,'Saved researcher');assert.equal(restored.emoji,'🚀');assert.equal(restored.totalEarned,earned);assert.equal(restored.generators.length,11);
  assert.ok(restored.revision>updated.revision);
  response=await fetch(server.url+'/integrals-api/leaderboard');const ranking=await response.json();assert.equal(ranking.entries[0].id,created.player.id);assert.equal(ranking.entries[0].totalEarned,earned);assert.equal(ranking.entries[0].balance,restored.balance);assert.equal(ranking.entries[0].emoji,'🚀');
  const websocket=await wsConnect(t,server.url,'/cube-ws');const welcome=await requestPacket(websocket,{type:'create',nickname:'Still works'},value=>value.type==='welcome');assert.ok(welcome.roomId);await closeSocket(websocket);
