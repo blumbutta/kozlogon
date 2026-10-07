@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
+import { DatabaseSync } from 'node:sqlite';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const origin='https://blumbutta.github.io';
@@ -140,4 +141,46 @@ test('an unusable SQLite path does not prevent existing games from starting',{ti
  assert.equal((await fetch(server.url+'/cube-health')).status,200);
  const response=await fetch(server.url+'/integrals-api/health');assert.equal(response.status,503);
  assert.equal((await response.json()).error.code,'storage_unavailable');
+});
+
+test('bundled portal API exposes solvable circuits and preserves a legacy reverse challenge after restart',{timeout:20000},async t=>{
+ const directory=await mkdtemp(join(tmpdir(),'integrals-portal-'));let server;
+ t.after(async()=>{await server?.stop();await rm(directory,{recursive:true,force:true});});
+ const dbPath=join(directory,'game.sqlite');server=await startServer(t,dbPath);
+ async function request(path,token,body){
+  const response=await fetch(server.url+'/integrals-api'+path,{method:body?'POST':'GET',headers:{Origin:origin,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})});
+  const data=await response.json();assert.equal(response.status,body&&path==='/players'?201:200,JSON.stringify(data));return data;
+ }
+ const modern=await request('/players',null,{nickname:'New portal'}),legacy=await request('/players',null,{nickname:'Saved old portal'});
+ await server.stop();
+ const db=new DatabaseSync(dbPath),read=db.prepare('SELECT id,state FROM integrals_players WHERE public_id=?'),write=db.prepare('UPDATE integrals_players SET state=?,total_earned=? WHERE id=?');
+ const row=read.get(modern.player.id),state=JSON.parse(row.state);state.generators[7]=1;write.run(JSON.stringify(state),state.totalEarned,row.id);
+ const oldRow=read.get(legacy.player.id),oldState=JSON.parse(oldRow.state),now=Date.now(),oldId=randomUUID();
+ oldState.balance=25;oldState.totalEarned=25;oldState.runEarned=25;
+ oldState.activeEvent={id:oldId,eventId:'portal',name:'Обратный сигнал',kind:'reverse',startedAt:now-6000,deadline:now+24000,reward:777,penalty:155,prompts:[{prompt:'Введи четыре цифры в обратном порядке.'}],data:{digits:'4137',memorizeUntil:now-1000},_answers:['7314']};
+ write.run(JSON.stringify(oldState),25,oldRow.id);db.close();server=await startServer(t,dbPath);
+ const act=(token,body)=>request('/action',token,{id:`${Date.now()}-${randomUUID()}`,...body});
+ const started=await act(modern.token,{type:'event_start',itemId:'portal'}),event=started.player.activeEvent;
+ assert.equal(event.kind,'quiz');assert.equal(event.prompts.length,3);assert.equal(event.deadline-event.startedAt,75000);assert.equal(event.penalty,event.reward);
+ assert.equal(event.data.digits,undefined);assert.ok(!JSON.stringify(started).includes('_answers'));
+ const answers=event.prompts.map(prompt=>{
+  assert.ok(prompt.circuit.steps.length>=2);assert.equal(typeof prompt.circuit.output,'number');
+  for(const step of prompt.circuit.steps)assert.ok(prompt.prompt.includes(step),'older quiz clients see the full chain in the text');
+  assert.ok(prompt.prompt.includes(String(prompt.circuit.output)));
+  // Independently try each visible option through the public forward chain.
+  const candidates=prompt.options.map((option,index)=>({index,output:prompt.circuit.steps.reduce((value,step)=>{
+   const match=/^([+×−÷]) (\d+)$/.exec(step);assert.ok(match);const n=Number(match[2]);
+   return match[1]==='+'?value+n:match[1]==='×'?value*n:match[1]==='−'?value-n:value/n;
+  },Number(option))})).filter(candidate=>candidate.output===prompt.circuit.output);
+  assert.equal(candidates.length,1,'each public circuit has exactly one correct option');return candidates[0].index;
+ });
+ const modernWin=await act(modern.token,{type:'event_answer',itemId:event.id,answers});
+ assert.equal(modernWin.player.lastEventResult.outcome,'win');assert.equal(modernWin.player.lastEventResult.reward,event.reward);assert.equal(modernWin.player.eventStats.wins,1);
+ const restored=(await request('/state',legacy.token)).player;
+ assert.equal(restored.activeEvent.kind,'reverse');assert.equal(restored.activeEvent.id,oldId);assert.equal(restored.activeEvent.data.digits,'4137');assert.equal(restored.activeEvent._answers,undefined);
+ const answer={id:`${Date.now()}-${randomUUID()}`,type:'event_answer',itemId:oldId,answers:['7314']};
+ const oldWin=(await request('/action',legacy.token,answer)).player;
+ assert.equal(oldWin.activeEvent,null);assert.equal(oldWin.lastEventResult.outcome,'win');assert.equal(oldWin.lastEventResult.reward,777);assert.equal(oldWin.totalEarned,802);assert.equal(oldWin.eventStats.wins,1);
+ const repeated=(await request('/action',legacy.token,answer)).player;assert.equal(repeated.totalEarned,802);assert.equal(repeated.eventStats.wins,1);
+ await server.stop();
 });
